@@ -13,11 +13,13 @@ const Header = () => {
 
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return <div className="h-[84px]"></div>; // Placeholder to prevent layout shift
+  // Prevents hydration mismatch for the theme toggle icon
+  if (!mounted) return <div className="h-[84px] w-full bg-[#020403]"></div>;
 
   return (
+    // FIX: Added relative z-20 and a consistent background color
     <motion.header
-      className="w-full bg-trueBlack text-light p-4 px-8 flex justify-between items-center border-b-2 border-accent"
+      className="relative z-20 w-full bg-[#020403] text-light p-4 px-8 flex justify-between items-center border-b-2 border-accent"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 120, damping: 14, delay: 0.2 }}
@@ -25,10 +27,10 @@ const Header = () => {
       <Link href="/">
         <motion.h1
           className="font-cyber text-4xl text-accent cursor-pointer"
-          style={{ textShadow: '0 0 10px rgba(34, 211, 238, 0.8)' }} // Added neon glow
+          style={{ textShadow: '0 0 10px rgba(34, 211, 238, 0.8)' }}
           whileHover={{ 
             scale: 1.05,
-            textShadow: '0 0 20px rgba(34, 211, 238, 1)' // Intensify glow on hover
+            textShadow: '0 0 20px rgba(34, 211, 238, 1)'
           }}
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
@@ -36,9 +38,8 @@ const Header = () => {
         </motion.h1>
       </Link>
       <div className="flex items-center space-x-6">
-        {/* GitHub Link */}
         <motion.a
-          href="https://github.com" // Replace with your actual GitHub link
+          href="https://github.com"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 hover:text-accent transition-colors duration-300"
@@ -47,10 +48,8 @@ const Header = () => {
         >
           <FaGithub size={24} />
         </motion.a>
-
-        {/* LinkedIn Link */}
         <motion.a
-          href="https://linkedin.com" // Replace with your actual LinkedIn link
+          href="https://linkedin.com"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 hover:text-accent transition-colors duration-300"
@@ -59,8 +58,6 @@ const Header = () => {
         >
           <FaLinkedin size={24} />
         </motion.a>
-
-        {/* Theme Toggle */}
         <motion.button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="p-2 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"

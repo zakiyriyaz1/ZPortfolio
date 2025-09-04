@@ -4,20 +4,16 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px; /* Thinner scrollbar */
+  width: 4px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #0a0a0a; /* Dark track */
+  background: #0a0a0a;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #2d2d2d; /* Dark gray thumb */
-  border-radius: 10px;
+  background: #2d2d2d;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #444; /* Slightly lighter gray on hover */
+  background: #444;
 }
 
 /* Rule to hide the default cursor on clickable elements */

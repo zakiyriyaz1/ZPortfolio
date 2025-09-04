@@ -14,12 +14,12 @@ const inter = Inter({
 });
 
 const cyber = localFont({
-  src: "../assets/fonts/sacredhertz.otf", // Corrected filename
+  src: "../assets/fonts/sacredhertz.otf",
   variable: "--font-cyber",
 });
 
 export const metadata: Metadata = {
-  title: "Zakiy Riyaz | Portfolio", // Corrected name
+  title: "Zakiy Riyaz | Portfolio",
   description: "A modern developer portfolio",
 };
 
