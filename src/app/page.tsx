@@ -6,8 +6,14 @@ import React from 'react';
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
+      
+      {/* Profile Picture Placeholder (Stable Version) */}
+      <div 
+        className="w-48 h-48 rounded-full bg-[#141921] border-2 border-accent mb-8 shadow-cyan-glow"
+      />
+
       <h1 className="text-5xl md:text-7xl font-bold">
-        Hi, I'm Zaky
+        Zakiy Riyaz
       </h1>
       
       <div className="mt-4">
@@ -20,9 +26,9 @@ export default function Home() {
       
       <div className="mt-8">
         <Link href="/projects">
-          <span className="px-8 py-3 font-semibold rounded-md bg-cyan-500 text-black hover:bg-cyan-400 transition-colors duration-300">
+          <button className="px-8 py-3 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300">
             View My Work
-          </span>
+          </button>
         </Link>
       </div>
     </div>
