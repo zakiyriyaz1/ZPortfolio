@@ -4,9 +4,10 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 import CustomCursor from "@/components/CustomCursor";
+import StatusBar from "@/components/StatusBar"; // 1. Import StatusBar
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,6 +46,7 @@ export default function RootLayout({
                 {children}
               </main>
             </div>
+            <StatusBar /> {/* 2. Replace Footer with StatusBar */}
           </div>
         </ThemeProvider>
       </body>

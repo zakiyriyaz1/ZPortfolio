@@ -3,7 +3,7 @@
 
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Project } from "@/data/projects";
-import { FaGithub, FaTimes } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 
 interface ProjectCardProps {
   project: Project;
@@ -12,7 +12,7 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, onClick }) => {
-  const { id, title, description, tags, coverImage, longDescription, githubUrl } = project;
+  const { id, title, description, tags, coverImage, longDescription, githubUrl, liveUrl } = project;
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -51,13 +51,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
         boxShadow: "0 0 30px rgba(34, 211, 238, 0.8)" 
       } : {}}
       transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      className={`relative rounded-2xl ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] min-h-[180px] p-8 cursor-pointer'}`}
+      // Added h-[250px] for a fixed height and flex-col to structure content
+      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-[250px] cursor-pointer'}`}
     >
       {!isSelected ? (
         // Small Card View
-        <div style={{ transform: "translateZ(30px)" }}>
+        <div className="p-8 flex flex-col flex-grow" style={{ transform: "translateZ(30px)" }}>
           <h3 className="text-xl font-bold text-light mb-2">{title}</h3>
-          <p className="text-[#707886] mb-6">{description}</p>
+          {/* Added line-clamp-2 to truncate text */}
+          <p className="text-[#707886] mb-6 line-clamp-2 flex-grow">{description}</p>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <span key={tag} className="bg-[#122934] text-[#00d5f5] text-xs font-bold px-3 py-1 rounded-md">
@@ -85,10 +87,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
               ))}
             </div>
             <p className="text-gray-300 mb-6">{longDescription}</p>
-            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors">
-              <FaGithub />
-              View on GitHub
-            </a>
+            <div className="flex space-x-4">
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors">
+                <FaGithub />
+                View on GitHub
+              </a>
+              {liveUrl && (
+                <a href={liveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 font-semibold rounded-md bg-gray-700 text-light hover:bg-gray-600 transition-colors">
+                  View Live
+                </a>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
@@ -96,4 +105,4 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
   );
 };
 
-export default ProjectCard;
+export default ProjectCard; 

@@ -7,7 +7,9 @@ import ProjectCard from "@/components/ProjectCard";
 import projectsData from "@/data/projects";
 import NeonText from "@/components/NeonText";
 
-// Animation variants for the container to orchestrate the stagger
+const categories = ["Pinned", "Website", "Dashboard", "ML Project"];
+
+// Your original animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -18,7 +20,6 @@ const containerVariants = {
   },
 };
 
-// Animation variants for each individual card
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -26,25 +27,47 @@ const itemVariants = {
 
 export default function ProjectsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState("Pinned");
 
   const selectedProject = projectsData.find(p => p.id === selectedId);
 
+  const filteredProjects = projectsData.filter(project => {
+    if (activeCategory === "Pinned") {
+      return project.pinned;
+    }
+    return project.category === activeCategory;
+  });
+
   return (
     <section className="p-8">
-      <NeonText>My Projects</NeonText>
-      <p className="text-gray-400 mt-4 mb-8">
-        Here are some of the things I've built.
-      </p>
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+        <div>
+          <NeonText>My Projects</NeonText>
+          <p className="text-gray-400 mt-4">
+            Here are some of the things I've built.
+          </p>
+        </div>
+        <div className="flex space-x-2 p-1 bg-[#141921] rounded-lg">
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-300 ${activeCategory === category ? 'bg-accent text-dark' : 'text-gray-400 hover:bg-gray-700/50'}`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* The motion.div now orchestrates the animation */}
       <motion.div
+        key={activeCategory} // Add key to re-trigger animation on filter change
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="grid grid-cols-1 md:grid-cols-2 gap-8"
       >
-        {projectsData.map((project) => (
-          // Each card is now a motion.div with its own animation variant
+        {filteredProjects.map((project) => (
           <motion.div key={project.id} variants={itemVariants}>
             <ProjectCard 
               project={project}
@@ -57,17 +80,19 @@ export default function ProjectsPage() {
       <AnimatePresence>
         {selectedProject && (
           <motion.div 
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedId(null)}
           >
-            <ProjectCard 
-              project={selectedProject} 
-              isSelected={true}
-              onClick={() => setSelectedId(null)}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <ProjectCard 
+                project={selectedProject} 
+                isSelected={true}
+                onClick={() => setSelectedId(null)}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
