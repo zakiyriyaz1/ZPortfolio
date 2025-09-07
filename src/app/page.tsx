@@ -2,24 +2,23 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 import { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import type { ISourceOptions } from "@tsparticles/engine";
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import NeonText from '@/components/NeonText';
 
-// Step 1: Dynamically import the Particles component with a simple loader
+// Dynamic import for the Particles component to ensure it's not server-side rendered.
 const Particles = dynamic(() => import('@tsparticles/react'), {
   ssr: false,
-  // You can add a loading component here if you want
-  // loading: () => <p>Loading particles...</p> 
 });
 
 export default function Home() {
   const [init, setInit] = useState(false);
 
-  // Step 2: useEffect to initialize the tsParticles engine
+  // Initialize the tsParticles engine once on component mount.
   useEffect(() => {
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
@@ -86,7 +85,7 @@ export default function Home() {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center -m-8">
-      {/* Step 3: Conditionally render Particles only when the engine is initialized */}
+      {/* Conditionally render Particles only when the engine is initialized. */}
       {init && (
         <Particles
           id="tsparticles"
@@ -94,18 +93,19 @@ export default function Home() {
           className="absolute inset-0 z-0 pointer-events-none"
         />
       )}
-      
+
       <div className="relative z-10 flex flex-col items-center justify-center text-center p-8">
-        
+
+        {/* Profile picture container */}
         <motion.div
-          className="w-48 h-48 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mb-10 bg-dark/30 backdrop-blur-sm"
+          className="w-40 h-40 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mt-20 mb-10 overflow-hidden bg-dark/30 backdrop-blur-sm relative"
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ 
-            opacity: 1, 
-            scale: [1, 1.03, 1],
+          animate={{
+            opacity: 1,
+            scale: [1.1, 1.03, 1.1],
           }}
-          transition={{ 
-            delay: 0.2, 
+          transition={{
+            delay: 0.2,
             duration: 0.5,
             scale: {
               duration: 3,
@@ -113,12 +113,21 @@ export default function Home() {
               ease: "easeInOut"
             }
           }}
-        />
+        >
+          {/* Corrected image path */}
+          <Image
+            src="/images/Screenshot_20250907_230028_Gallery.jpg"
+            alt="Profile Picture"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-full"
+          />
+        </motion.div>
 
         <h1 className="text-5xl md:text-7xl font-bold text-white">
           Zakiy Riyaz
         </h1>
-        
+
         <div className="mt-4">
           <NeonText className="text-3xl md:text-4xl">Data Scientist</NeonText>
         </div>
@@ -126,15 +135,31 @@ export default function Home() {
         <p className="mt-6 max-w-xl text-lg text-gray-300">
           I specialize in uncovering the stories hidden within data and building modern, engaging web experiences.
         </p>
-        
-        <div className="mt-8">
+
+        {/* Button container with a gap for spacing. */}
+        <div className="mt-8 flex gap-4">
+          {/* Swapped to the glowing button appearance */}
           <Link href="/projects">
-            <motion.button 
-              className="px-8 py-3 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
-              whileHover={{ scale: 1.05 }}
+            <motion.button
+              className="px-7 py-3 font-bold rounded-md bg-transparent text-white border-2 border-white"
+              style={{
+                boxShadow: "0 0 8px #fff, inset 0 0 8px #fff",
+              }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 12px #fff, inset 0 0 12px #fff" }}
               whileTap={{ scale: 0.95 }}
             >
               View My Work
+            </motion.button>
+          </Link>
+
+          {/* Swapped to the solid button appearance */}
+          <Link href="/contact">
+            <motion.button
+              className="px-8 py-3.5 font-bold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Contact Me!
             </motion.button>
           </Link>
         </div>

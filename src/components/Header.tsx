@@ -13,18 +13,18 @@ const Header = () => {
   useEffect(() => setMounted(true), []);
 
   // Prevents hydration mismatch for the theme toggle icon
-  if (!mounted) return <div className="h-[84px] w-full bg-[#020403]"></div>;
+  if (!mounted) return <div className="h-[59px] w-full bg-[#020403]"></div>;
 
   return (
     <motion.header
-      className="relative z-20 w-full bg-[#020403] text-light p-4 px-8 flex justify-between items-center border-b-2 border-accent"
+      className="relative z-20 w-full bg-[#020403] text-light p-3 px-6 flex justify-between items-center border-b-2 border-accent"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 120, damping: 14, delay: 0.2 }}
     >
       <Link href="/">
         <motion.h1
-          className="font-cyber text-4xl text-accent cursor-pointer"
+          className="font-cyber text-3xl text-accent cursor-pointer"
           style={{ textShadow: '0 0 10px rgba(34, 211, 238, 0.8)' }}
           whileHover={{ 
             scale: 1.05,
@@ -35,7 +35,7 @@ const Header = () => {
           Z
         </motion.h1>
       </Link>
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-5">
         <motion.a
           href="https://github.com"
           target="_blank"
@@ -44,7 +44,7 @@ const Header = () => {
           whileHover={{ scale: 1.2, y: -2 }}
           whileTap={{ scale: 0.9 }}
         >
-          <FaGithub size={24} />
+          <FaGithub size={20} />
         </motion.a>
         <motion.a
           href="https://linkedin.com"
@@ -54,16 +54,16 @@ const Header = () => {
           whileHover={{ scale: 1.2, y: -2 }}
           whileTap={{ scale: 0.9 }}
         >
-          <FaLinkedin size={24} />
+          <FaLinkedin size={20} />
         </motion.a>
         <motion.button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="p-2 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
+          className="p-1.5 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
           whileHover={{ scale: 1.1, rotate: 15 }}
           whileTap={{ scale: 0.9 }}
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
+          {theme === "dark" ? <FaSun size={18} /> : <FaMoon size={18} />}
         </motion.button>
       </div>
     </motion.header>
@@ -71,4 +71,3 @@ const Header = () => {
 };
 
 export default Header;
-

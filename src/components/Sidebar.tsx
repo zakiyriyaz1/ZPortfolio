@@ -26,7 +26,7 @@ export default function Sidebar() {
                 <Link
                   href={item.path}
                   // On small screens, content is centered. On `lg`, it's aligned to the start.
-                  className={`group flex items-center justify-center lg:justify-start space-x-0 lg:space-x-3 px-2 lg:px-4 py-3 rounded-xl transition-all duration-300 hover:bg-white/5
+                  className={`group flex items-center justify-center lg:justify-start space-x-0 lg:space-x-3 px-2 lg:px-4 py-3 rounded-xl transition-all duration-300 
                     ${
                       isActive
                         ? 'text-accent'
