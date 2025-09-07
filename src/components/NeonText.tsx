@@ -1,9 +1,16 @@
 // src/components/NeonText.tsx
 import React from 'react';
 
-const NeonText = ({ children }: { children: React.ReactNode }) => {
+// Add className as an optional prop
+interface NeonTextProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+const NeonText: React.FC<NeonTextProps> = ({ children, className }) => {
   return (
-    <h1 className="text-4xl font-bold text-cyan-400 transition-all duration-300" style={{ textShadow: '0 0 5px currentColor' }}>
+    // Combine the default classes with any passed className
+    <h1 className={`text-4xl font-bold text-cyan-400 transition-all duration-300 ${className}`} style={{ textShadow: '0 0 5px currentColor' }}>
       {children}
     </h1>
   );

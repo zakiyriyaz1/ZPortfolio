@@ -1,7 +1,6 @@
-// src/app/projects/page.tsx
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectCard from "@/components/ProjectCard";
 import projectsData from "@/data/projects";
@@ -9,15 +8,9 @@ import NeonText from "@/components/NeonText";
 
 const categories = ["Pinned", "Website", "Dashboard", "ML Project"];
 
-// Your original animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const itemVariants = {
@@ -40,28 +33,51 @@ export default function ProjectsPage() {
 
   return (
     <section className="p-8">
-      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+      {/* Header section with title and filters */}
+      <div className="flex justify-between items-baseline mb-8 flex-wrap gap-4">
         <div>
-          <NeonText>My Projects</NeonText>
-          <p className="text-gray-400 mt-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-light">
+            <NeonText>My Projects</NeonText>
+          </h1>
+          <p className="text-gray-400 mt-2">
             Here are some of the things I've built.
           </p>
         </div>
-        <div className="flex space-x-2 p-1 bg-[#141921] rounded-lg">
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-300 ${activeCategory === category ? 'bg-accent text-dark' : 'text-gray-400 hover:bg-gray-700/50'}`}
-            >
-              {category}
-            </button>
+        
+        {/* Filter buttons with new style */}
+        <div className="flex items-center space-x-4">
+          {categories.map((category, index) => (
+            <React.Fragment key={category}>
+              <button
+                onClick={() => setActiveCategory(category)}
+                className="relative py-1 text-sm transition-colors duration-300 focus:outline-none"
+              >
+                <span className={`flex items-center 
+                  ${activeCategory === category ? 'font-bold text-accent' : 'font-semibold text-gray-500 hover:text-accent'}`
+                }>
+                  {category}
+                </span>
+                
+                {activeCategory === category && (
+                  <motion.div 
+                    className="absolute bottom-[-4px] left-0 right-0 h-[2px] bg-accent"
+                    layoutId="active-filter-underline"
+                    style={{ filter: 'drop-shadow(0 0 3px rgba(34, 211, 238, 0.7))' }}
+                  />
+                )}
+              </button>
+
+              {index < categories.length - 1 && (
+                <span className="text-gray-600 select-none">|</span>
+              )}
+            </React.Fragment>
           ))}
         </div>
       </div>
 
+      {/* Grid for project cards */}
       <motion.div
-        key={activeCategory} // Add key to re-trigger animation on filter change
+        key={activeCategory}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -77,6 +93,7 @@ export default function ProjectsPage() {
         ))}
       </motion.div>
 
+      {/* Modal for selected project */}
       <AnimatePresence>
         {selectedProject && (
           <motion.div 
@@ -99,3 +116,4 @@ export default function ProjectsPage() {
     </section>
   );
 }
+

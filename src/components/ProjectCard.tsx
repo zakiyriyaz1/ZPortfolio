@@ -52,7 +52,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
       } : {}}
       transition={{ type: "spring", stiffness: 200, damping: 15 }}
       // Added h-[250px] for a fixed height and flex-col to structure content
-      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-[250px] cursor-pointer'}`}
+      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-[180px] cursor-pointer'}`}
     >
       {!isSelected ? (
         // Small Card View
