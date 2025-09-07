@@ -1,16 +1,9 @@
-Of course. Here is a more refined, professional, and direct version of your README, focusing on technical substance and clarity.
-
------
-
-\<div align="center"\>
 
 # ZPortfolio
 
 A performance-focused developer portfolio built with Next.js 14, TypeScript, and Framer Motion.
 
 **[Live Demo](https://your-live-demo-link.com)**
-
-\</div\>
 
 This repository contains the source code for a personal developer portfolio designed to showcase projects with a clean, cyberpunk-inspired aesthetic. The primary goals were to achieve a fast, responsive, and interactive user experience while maintaining a well-structured and scalable codebase.
 
