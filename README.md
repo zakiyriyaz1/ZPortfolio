@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+ZPortfolio - A Modern Developer Portfolio
+<div align="center">
+<h1 style="font-size: 4rem; font-weight: bold; letter-spacing: 0.2em;">Z</h1>
+</div>
 
-## Getting Started
+A highly interactive, performance-optimized personal portfolio built with Next.js, Framer Motion, and a cyberpunk-inspired aesthetic.
 
-First, run the development server:
+This repository contains the source code for my personal developer portfolio, designed to showcase my skills in modern web development, data science, and UI/UX design. The project was born from the need to create a stable, fast, and visually stunning platform that not only lists my work but also serves as a testament to my technical capabilities.
 
-```bash
+✨ Key Features
+This portfolio is more than just a list of projects; it's an interactive experience.
+
+Fully Responsive Layout: A seamless experience on all devices, featuring an adaptive "mini icon-only" sidebar for tablets and mobiles that expands on desktop.
+
+Interactive UI & Animations: Fluid and engaging animations powered by Framer Motion, including 3D-tilting project cards, a custom mouse cursor, and subtle micro-interactions that enhance the user experience.
+
+Dynamic Project Filtering: A clean and intuitive interface on the projects page that allows visitors to filter projects by category, with smooth, animated transitions.
+
+Performance Optimized: Built for speed. Heavy components like the tsparticles background are lazy-loaded using next/dynamic, and all project images are optimized with the Next.js <Image> component to ensure fast load times.
+
+Cyberpunk Aesthetic: A sophisticated dark theme with a vibrant cyan accent color, custom fonts, and glowing neon effects to create a unique and memorable visual identity.
+
+Theming: Features a fully functional dark and light mode toggle, managed with next-themes.
+
+🛠️ Technology Stack
+This project was built using a modern, industry-standard technology stack to ensure performance, scalability, and an excellent developer experience.
+
+Category
+
+Technology
+
+Framework
+
+Next.js 14 (with App Router)
+
+Language
+
+TypeScript
+
+Styling
+
+Tailwind CSS
+
+Animation
+
+Framer Motion
+
+UI/Icons
+
+React Icons, next-themes
+
+Particles
+
+tsParticles
+
+🚀 Getting Started
+To run this project locally, follow these steps:
+
+Clone the repository:
+
+git clone [https://github.com/zakiyriyaz1/ZPortfolio.git](https://github.com/zakiyriyaz1/ZPortfolio.git)
+cd ZPortfolio
+
+Install dependencies:
+
+npm install
+
+Run the development server:
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+🗺️ Project Roadmap
+This project is under active development. The roadmap below outlines what has been accomplished and what's planned for the future.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+✅ Phase 1: Completed
+[x] Core Architecture: Set up Next.js 14 project with TypeScript and Tailwind CSS.
 
-## Learn More
+[x] UI Foundation: Built all core components (Header, Sidebar, ProjectCard, StatusBar).
 
-To learn more about Next.js, take a look at the following resources:
+[x] Full Mobile Responsiveness: Implemented the adaptive "mini icon-only" sidebar and responsive project grid.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+[x] Performance Optimization: Lazy-loaded the particle background and optimized all project images.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+[x] Key Bug Fixes: Resolved critical hydration errors and component conflicts.
 
-## Deploy on Vercel
+⏳ Phase 2: In Progress
+[x] Functional Contact Form: Implement a serverless API route using Resend to handle form submissions.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+[x] SEO & Metadata: Add unique, descriptive metadata to all pages for improved search engine ranking and social sharing.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[ ] Custom 404 Page: Design a unique "Page Not Found" experience that fits the theme.
+
+Future Goals
+[ ] Light Mode Theme: Finalize a complete and polished color scheme for the light theme.
+
+[ ] Enhanced Project Views: Implement a detailed modal view for project case studies.
+
+[ ] Blog / Writing Section: Add a blog powered by MDX to share technical insights.
+
+[ ] Accessibility (a11y) Audit: Perform a full accessibility review to ensure WCAG compliance.
+
+[ ] Code Quality Refinements: Centralize all TypeScript types and add a favicon.
