@@ -1,4 +1,3 @@
-// src/components/Header.tsx
 "use client";
 
 import { useTheme } from "next-themes";
@@ -17,7 +16,6 @@ const Header = () => {
   if (!mounted) return <div className="h-[84px] w-full bg-[#020403]"></div>;
 
   return (
-    // FIX: Added relative z-20 and a consistent background color
     <motion.header
       className="relative z-20 w-full bg-[#020403] text-light p-4 px-8 flex justify-between items-center border-b-2 border-accent"
       initial={{ y: -100 }}
@@ -63,6 +61,7 @@ const Header = () => {
           className="p-2 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
           whileHover={{ scale: 1.1, rotate: 15 }}
           whileTap={{ scale: 0.9 }}
+          aria-label="Toggle theme"
         >
           {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
         </motion.button>
@@ -72,3 +71,4 @@ const Header = () => {
 };
 
 export default Header;
+

@@ -1,4 +1,3 @@
-// src/components/ProjectCard.tsx
 "use client";
 
 import { motion, useMotionValue, useTransform } from "framer-motion";
@@ -51,14 +50,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
         boxShadow: "0 0 30px rgba(34, 211, 238, 0.8)" 
       } : {}}
       transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      // Added h-[250px] for a fixed height and flex-col to structure content
-      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-[180px] cursor-pointer'}`}
+      // === THE FIX IS HERE ===
+      // h-auto on mobile, h-[180px] on medium screens and up
+      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-auto md:h-[180px] cursor-pointer'}`}
     >
       {!isSelected ? (
         // Small Card View
         <div className="p-8 flex flex-col flex-grow" style={{ transform: "translateZ(30px)" }}>
           <h3 className="text-xl font-bold text-light mb-2">{title}</h3>
-          {/* Added line-clamp-2 to truncate text */}
           <p className="text-[#707886] mb-6 line-clamp-2 flex-grow">{description}</p>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
@@ -105,4 +104,4 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
   );
 };
 
-export default ProjectCard; 
+export default ProjectCard;
