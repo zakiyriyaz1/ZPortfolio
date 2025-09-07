@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Project } from "@/data/projects";
 import { FaGithub } from "react-icons/fa";
+import Image from 'next/image'; // Step 1: Import the Next.js Image component
 
 interface ProjectCardProps {
   project: Project;
@@ -50,8 +51,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
         boxShadow: "0 0 30px rgba(34, 211, 238, 0.8)" 
       } : {}}
       transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      // === THE FIX IS HERE ===
-      // h-auto on mobile, h-[180px] on medium screens and up
       className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-3xl h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-auto md:h-[180px] cursor-pointer'}`}
     >
       {!isSelected ? (
@@ -75,7 +74,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
           transition={{ delay: 0.2, duration: 0.3 }}
           className="h-auto max-h-[90vh] overflow-y-auto"
         >
-          <img src={coverImage} alt={title} className="w-full h-64 object-cover" />
+          {/* Step 2: Replace the standard <img> tag with the optimized <Image> component */}
+          <Image
+            src={coverImage}
+            alt={title}
+            width={1200} // The original width of your images from picsum.photos
+            height={800} // The original height
+            className="w-full h-64 object-cover"
+          />
           <div className="p-6 bg-[#141921]">
             <h2 className="text-3xl font-bold text-accent" style={{ textShadow: '0 0 8px rgba(34, 211, 238, 0.8)' }}>{title}</h2>
             <div className="flex flex-wrap gap-2 my-4">
@@ -105,3 +111,4 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
 };
 
 export default ProjectCard;
+

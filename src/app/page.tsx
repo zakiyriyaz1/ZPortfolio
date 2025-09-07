@@ -1,16 +1,25 @@
 "use client";
 
-import NeonText from '@/components/NeonText';
-import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion } from "framer-motion"; 
-import Particles, { initParticlesEngine } from "@tsparticles/react";
+import { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import type { ISourceOptions } from "@tsparticles/engine";
+import dynamic from 'next/dynamic';
+import NeonText from '@/components/NeonText';
+
+// Step 1: Dynamically import the Particles component with a simple loader
+const Particles = dynamic(() => import('@tsparticles/react'), {
+  ssr: false,
+  // You can add a loading component here if you want
+  // loading: () => <p>Loading particles...</p> 
+});
 
 export default function Home() {
   const [init, setInit] = useState(false);
 
+  // Step 2: useEffect to initialize the tsParticles engine
   useEffect(() => {
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
@@ -75,20 +84,18 @@ export default function Home() {
     detectRetina: true,
   }), []);
 
-  if (!init) {
-    return null;
-  }
-
   return (
     <div className="relative w-full h-full flex items-center justify-center -m-8">
-      <Particles
-        id="tsparticles"
-        options={particlesOptions}
-        className="absolute inset-0 z-0 pointer-events-none"
-      />
+      {/* Step 3: Conditionally render Particles only when the engine is initialized */}
+      {init && (
+        <Particles
+          id="tsparticles"
+          options={particlesOptions}
+          className="absolute inset-0 z-0 pointer-events-none"
+        />
+      )}
       
-      {/* CHANGE: Added pt-16 (padding-top) to this container to push content down */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center p-8 pt-16">
+      <div className="relative z-10 flex flex-col items-center justify-center text-center p-8">
         
         <motion.div
           className="w-48 h-48 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mb-10 bg-dark/30 backdrop-blur-sm"
@@ -113,7 +120,7 @@ export default function Home() {
         </h1>
         
         <div className="mt-4">
-          <NeonText>Data Scientist</NeonText>
+          <NeonText className="text-3xl md:text-4xl">Data Scientist</NeonText>
         </div>
 
         <p className="mt-6 max-w-xl text-lg text-gray-300">
@@ -122,9 +129,13 @@ export default function Home() {
         
         <div className="mt-8">
           <Link href="/projects">
-            <button className="px-8 py-3 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300">
+            <motion.button 
+              className="px-8 py-3 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               View My Work
-            </button>
+            </motion.button>
           </Link>
         </div>
       </div>
