@@ -36,15 +36,16 @@ export default function ProjectsPage() {
       {/* Header section with title and filters */}
       <div className="flex justify-between items-baseline mb-8 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-light">
+          {/* The h1 tag has been changed to a div to fix the nesting error */}
+          <div className="text-2xl md:text-3xl font-bold text-light">
             <NeonText>My Projects</NeonText>
-          </h1>
+          </div>
           <p className="text-gray-400 mt-2">
-            Here are some of the things I've built.
+            Here are some of the things I&apos;ve built.
           </p>
         </div>
         
-        {/* Filter buttons with new style */}
+        {/* Filter buttons */}
         <div className="flex items-center space-x-4">
           {categories.map((category, index) => (
             <React.Fragment key={category}>

@@ -20,12 +20,12 @@ export default function TypingText({
   cursorClassName = ""
 }: TypingTextProps) {
   const [displayedText, setDisplayedText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
+  // Removed the unused 'isTyping' state
+  // const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const startTyping = () => {
+    // Changed 'let' to 'const'
+    const timeoutId = setTimeout(() => {
       let i = 0;
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -33,13 +33,15 @@ export default function TypingText({
           i++;
         } else {
           clearInterval(typingInterval);
-          setIsTyping(false); // Typing is done
+          // setIsTyping(false); // This was the only use, so it can be removed
         }
       }, speed);
-    };
 
-    timeoutId = setTimeout(startTyping, delay * 1000);
+      // Cleanup interval on component unmount
+      return () => clearInterval(typingInterval);
+    }, delay * 1000);
 
+    // Cleanup timeout on component unmount
     return () => clearTimeout(timeoutId);
   }, [text, delay, speed]);
 
@@ -47,10 +49,8 @@ export default function TypingText({
     <p className={className}>
       {displayedText}
       <motion.span
-        // The cursor blinks using a simple opacity animation that repeats forever
         animate={{ opacity: [0, 1, 0] }}
         transition={{ duration: 0.8, repeat: Infinity }}
-        // The cursor is now an inline block, so it flows with the text
         className={`inline-block w-1 h-6 ml-1 ${cursorClassName}`}
         aria-hidden="true"
       />
