@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
@@ -6,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import CustomCursor from "@/components/CustomCursor";
-import StatusBar from "@/components/StatusBar";
+import StatusBar from "@/components/StatusBar"; // 1. Import StatusBar
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,12 +42,11 @@ export default function RootLayout({
             <Header />
             <div className="flex flex-1 overflow-hidden">
               <Sidebar />
-              {/* Padding removed from this main element */}
-              <main className="flex-1 overflow-y-auto">
+              <main className="flex-1 p-8 overflow-y-auto">
                 {children}
               </main>
             </div>
-            <StatusBar />
+            <StatusBar /> {/* 2. Replace Footer with StatusBar */}
           </div>
         </ThemeProvider>
       </body>
