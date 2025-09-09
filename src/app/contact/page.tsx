@@ -151,8 +151,8 @@ export default function ContactPage() {
       } else {
         throw new Error('Failed to send message');
       }
-    // MODIFIED: Renamed 'error' to '_error' to fix the unused variable warning.
-    } catch (_error) {
+    // MODIFIED: Removed the unused variable from the catch block.
+    } catch {
       clearInterval(progressInterval);
       setStatus({ type: 'error', message: 'Failed to send message. Please try again later.', progress: 0 });
     }
@@ -182,7 +182,6 @@ export default function ContactPage() {
               transition={{ duration: 0.5 }}
             >
               <form onSubmit={handleSubmit} className="space-y-3">
-                 {/* MODIFIED: Restored the missing progress bar JSX */}
                  {status.type === 'loading' && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-3">
                         <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
