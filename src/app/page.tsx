@@ -68,6 +68,7 @@ export default function Home() {
         density: {
           enable: true,
         },
+        // MODIFIED: Particle count restored to 200 as requested.
         value: 200,
       },
       opacity: {
@@ -84,7 +85,7 @@ export default function Home() {
   }), []);
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center -m-8">
+    <div className="relative w-full h-full flex items-center justify-center p-4">
       {/* Conditionally render Particles only when the engine is initialized. */}
       {init && (
         <Particles
@@ -94,11 +95,11 @@ export default function Home() {
         />
       )}
 
-      <div className="relative z-10 flex flex-col items-center justify-center text-center p-8">
+      <div className="relative z-10 flex flex-col items-center justify-center text-center">
 
         {/* Profile picture container */}
         <motion.div
-          className="w-40 h-40 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mt-20 mb-10 overflow-hidden bg-dark/30 backdrop-blur-sm relative"
+          className="w-32 h-32 md:w-40 md:h-40 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mt-12 mb-6 md:mt-5 md:mb-10 overflow-hidden bg-dark/30 backdrop-blur-sm relative"
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{
             opacity: 1,
@@ -114,34 +115,33 @@ export default function Home() {
             }
           }}
         >
-          {/* Corrected image path */}
           <Image
             src="/images/Screenshot_20250907_230028_Gallery.jpg"
             alt="Profile Picture"
             layout="fill"
             objectFit="cover"
             className="rounded-full"
+            priority
           />
         </motion.div>
 
-        <h1 className="text-5xl md:text-7xl font-bold text-white">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white">
           Zakiy Riyaz
         </h1>
 
         <div className="mt-4">
-          <NeonText className="text-3xl md:text-4xl">Data Scientist</NeonText>
+          <NeonText className="text-2xl md:text-4xl">Data Scientist</NeonText>
         </div>
 
-        <p className="mt-6 max-w-xl text-lg text-gray-300">
+        <p className="mt-6 max-w-sm md:max-w-xl text-lg text-gray-300">
           I specialize in uncovering the stories hidden within data and building modern, engaging web experiences.
         </p>
 
-        {/* Button container with a gap for spacing. */}
-        <div className="mt-8 flex gap-4">
-          {/* Swapped to the glowing button appearance */}
-          <Link href="/projects">
+        {/* Buttons now stack on mobile (flex-col) and are side-by-side on larger screens (sm:flex-row). */}
+        <div className="mt-8 flex w-full max-w-xs sm:max-w-none sm:w-auto flex-col sm:flex-row items-center gap-4">
+          <Link href="/projects" className="w-full sm:w-auto">
             <motion.button
-              className="px-7 py-3 font-bold rounded-md bg-transparent text-white border-2 border-white"
+              className="w-full sm:w-auto px-7 py-3 font-bold rounded-md bg-transparent text-white border-2 border-white"
               style={{
                 boxShadow: "0 0 8px #fff, inset 0 0 8px #fff",
               }}
@@ -152,10 +152,9 @@ export default function Home() {
             </motion.button>
           </Link>
 
-          {/* Swapped to the solid button appearance */}
-          <Link href="/contact">
+          <Link href="/contact" className="w-full sm:w-auto">
             <motion.button
-              className="px-8 py-3.5 font-bold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
+              className="w-full sm:w-auto px-8 py-3.5 font-bold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

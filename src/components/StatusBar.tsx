@@ -25,7 +25,7 @@ const StatusBar = () => {
   const currentPage = pathname === '/' ? '/home' : pathname;
 
   return (
-    <footer className="w-full h-7 bg-trueBlack/80 backdrop-blur-sm text-gray-600 px-4 flex justify-between items-center text-xs italic lowercase">
+    <footer className="w-full h-7 bg-trueBlack/80 backdrop-blur-sm text-cyan-300 px-4 flex justify-between items-center text-xs italic lowercase">
       {/* Left Section */}
       <div className="flex items-center space-x-4">
         <div>

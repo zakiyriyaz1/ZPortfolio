@@ -6,7 +6,8 @@ import ProjectCard from "@/components/ProjectCard";
 import projectsData from "@/data/projects";
 import NeonText from "@/components/NeonText";
 
-const categories = ["Pinned", "Website", "Dashboard", "ML Project"];
+// MODIFIED: Changed "ML Project" to "Machine Learning"
+const categories = ["Pinned", "Website", "Dashboard", "Machine Learning"];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,15 +29,19 @@ export default function ProjectsPage() {
     if (activeCategory === "Pinned") {
       return project.pinned;
     }
+    // MODIFIED: Updated this check to match the new category name
+    if (activeCategory === "Machine Learning") {
+      return project.category === "ML Project"; // Assuming data still uses "ML Project"
+    }
     return project.category === activeCategory;
   });
 
   return (
-    <section className="p-8">
+    // MODIFIED: Reduced padding on mobile (p-4) and kept it larger for medium screens and up (md:p-8).
+    <section className="p-4 md:p-8">
       {/* Header section with title and filters */}
       <div className="flex justify-between items-baseline mb-8 flex-wrap gap-4">
         <div>
-          {/* The h1 tag has been changed to a div to fix the nesting error */}
           <div className="text-2xl md:text-3xl font-bold text-light">
             <NeonText>My Projects</NeonText>
           </div>
@@ -45,8 +50,8 @@ export default function ProjectsPage() {
           </p>
         </div>
         
-        {/* Filter buttons */}
-        <div className="flex items-center space-x-4">
+        {/* MODIFIED: Added 'flex-wrap' and 'gap-4' to allow filters to wrap on small screens. Removed 'space-x-4'. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {categories.map((category, index) => (
             <React.Fragment key={category}>
               <button
@@ -68,8 +73,9 @@ export default function ProjectsPage() {
                 )}
               </button>
 
+              {/* MODIFIED: Hide the divider on mobile when buttons might wrap */}
               {index < categories.length - 1 && (
-                <span className="text-gray-600 select-none">|</span>
+                <span className="text-gray-600 select-none hidden sm:inline">|</span>
               )}
             </React.Fragment>
           ))}
@@ -82,7 +88,8 @@ export default function ProjectsPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 md:grid-cols-2 gap-8"
+        // MODIFIED: Reduced gap on mobile (gap-4) for a tighter layout.
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8"
       >
         {filteredProjects.map((project) => (
           <motion.div key={project.id} variants={itemVariants}>
@@ -117,4 +124,3 @@ export default function ProjectsPage() {
     </section>
   );
 }
-

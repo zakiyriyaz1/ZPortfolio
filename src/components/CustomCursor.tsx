@@ -7,65 +7,125 @@ import { motion, Variants } from 'framer-motion';
 const CustomCursor = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [cursorVariant, setCursorVariant] = useState("default");
+  const [preClickVariant, setPreClickVariant] = useState("default");
 
   useEffect(() => {
+    const style = document.createElement('style');
+    // This is the updated, more forceful CSS rule
+    style.innerHTML = `
+      * {
+        cursor: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     const mouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
     const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Check if the target or its parent is a link or button
-      if (target.closest('a, button')) {
-        setCursorVariant("linkHover");
+      let newVariant = "default";
+      if (e.target instanceof Element) {
+          if (e.target.closest('input, textarea, [contenteditable="true"]')) {
+              newVariant = "text";
+          } else if (e.target.closest('a, button, [role="button"]')) {
+              newVariant = "linkHover";
+          }
       }
+      setCursorVariant(newVariant);
+      setPreClickVariant(newVariant);
     };
-
-    const handleMouseLeave = () => {
-      setCursorVariant("default");
-    };
+    
+    const handleMouseDown = () => setCursorVariant("clicking");
+    const handleMouseUp = () => setCursorVariant(preClickVariant);
 
     window.addEventListener("mousemove", mouseMove);
-    // Add listeners for entering and leaving clickable elements
     document.addEventListener("mouseover", handleMouseOver);
-    document.addEventListener("mouseleave", handleMouseLeave, true);
-
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
 
     return () => {
+      document.head.removeChild(style);
       window.removeEventListener("mousemove", mouseMove);
       document.removeEventListener("mouseover", handleMouseOver);
-      document.removeEventListener("mouseleave", handleMouseLeave, true);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [preClickVariant]);
 
-  const variants: Variants = {
+  const svgVariants: Variants = {
     default: {
-      x: mousePosition.x - 8,
-      y: mousePosition.y - 8,
-      height: 16,
-      width: 16,
-      backgroundColor: "rgba(255, 0, 0, 0.6)",
-      boxShadow: "0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.4)",
-      transition: { type: "spring", stiffness: 500, damping: 30 }
+      x: mousePosition.x,
+      y: mousePosition.y,
+      scale: 1,
+      transition: { type: "spring", stiffness: 1000, damping: 60 }
     },
     linkHover: {
-      x: mousePosition.x - 24,
-      y: mousePosition.y - 24,
-      height: 48,
-      width: 48,
-      backgroundColor: "rgba(255, 0, 0, 0.1)", // More transparent
-      border: "2px solid rgba(255, 0, 0, 0.6)",
-      boxShadow: "0 0 15px rgba(255, 0, 0, 0.6)",
-      transition: { type: "spring", stiffness: 300, damping: 20 }
+      x: mousePosition.x,
+      y: mousePosition.y,
+      scale: 1.2,
+      transition: { type: "spring", stiffness: 800, damping: 40 }
+    },
+    clicking: {
+        x: mousePosition.x,
+        y: mousePosition.y,
+        scale: 0.8,
+        transition: { type: "spring", stiffness: 600, damping: 30 }
+    },
+    text: {
+        x: mousePosition.x - 16,
+        y: mousePosition.y - 16,
+        scale: 1,
+        transition: { type: "spring", stiffness: 1000, damping: 60 }
     }
   };
 
+  const arrowVariants: Variants = {
+    default: { opacity: 1 },
+    linkHover: { opacity: 1 },
+    clicking: { opacity: 1 },
+    text: { opacity: 0 }
+  };
+  
+  const iBeamVariants: Variants = {
+    default: { opacity: 0 },
+    linkHover: { opacity: 0 },
+    clicking: { opacity: 0 },
+    text: { opacity: 1, transition: { delay: 0.1 } }
+  };
+
   return (
-    <motion.div
-      variants={variants}
-      animate={cursorVariant} // Animate based on the cursorVariant state
-      className="rounded-full fixed top-0 left-0 pointer-events-none z-[999]"
-    />
+    <motion.svg
+      width="28"
+      height="28"
+      viewBox="0 0 32 32"
+      variants={svgVariants}
+      animate={cursorVariant}
+      className="fixed top-0 left-0 pointer-events-none z-[9999]"
+      style={{ originX: 0, originY: 0 }}
+    >
+      <defs>
+        <filter id="cyber-glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur1" />
+          <feColorMatrix in="blur1" mode="matrix" values="1 0 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="yellowGlow" />
+          <feMerge><feMergeNode in="yellowGlow" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      <motion.g variants={arrowVariants} animate={cursorVariant}>
+        <path
+          d="M 2 2 L 28 16 L 2 30 L 10 16 L 2 2 Z"
+          fill="#FFEC00"
+          filter="url(#cyber-glow-yellow)"
+          transform="rotate(-125 16 16)"
+        />
+      </motion.g>
+
+      <motion.g variants={iBeamVariants} animate={cursorVariant}>
+          <path d="M16 4 L16 28 M12 4 L20 4 M12 28 L20 28" stroke="#FFEC00" strokeWidth="2" filter="url(#cyber-glow-yellow)" />
+      </motion.g>
+
+    </motion.svg>
   );
 };
 

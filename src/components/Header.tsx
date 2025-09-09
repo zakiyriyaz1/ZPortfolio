@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
-import { FaSun, FaMoon, FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaSun, FaMoon, FaFileDownload } from "react-icons/fa";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -11,6 +11,15 @@ const Header = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  const downloadResume = () => {
+    const link = document.createElement('a');
+    link.href = '/resume/ZAKIY RIYAZ - RESUME.pdf';
+    link.download = 'ZAKIY RIYAZ - RESUME.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Prevents hydration mismatch for the theme toggle icon
   if (!mounted) return <div className="h-[59px] w-full bg-[#020403]"></div>;
@@ -36,26 +45,20 @@ const Header = () => {
         </motion.h1>
       </Link>
       <div className="flex items-center space-x-5">
-        <motion.a
-          href="https://github.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-400 hover:text-accent transition-colors duration-300"
+        <motion.button
+          onClick={downloadResume}
+          className="text-gray-400 hover:text-accent transition-colors duration-300 relative group flex items-center"
           whileHover={{ scale: 1.2, y: -2 }}
           whileTap={{ scale: 0.9 }}
+          aria-label="Download Resume"
         >
-          <FaGithub size={20} />
-        </motion.a>
-        <motion.a
-          href="https://linkedin.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-400 hover:text-accent transition-colors duration-300"
-          whileHover={{ scale: 1.2, y: -2 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <FaLinkedin size={20} />
-        </motion.a>
+          <span className="absolute -left-14 text-sm font-medium opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+            Resume
+          </span>
+          <FaFileDownload size={20} />
+          {/* Neon glow effect */}
+          <div className="absolute inset-0 rounded-full bg-accent/20 blur-md group-hover:bg-accent/40 transition-all duration-300 opacity-0 group-hover:opacity-100" />
+        </motion.button>
         <motion.button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="p-1.5 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
