@@ -33,7 +33,7 @@ const socialLinks = [
   { name: "Gmail", icon: <FaEnvelope />, url: "mailto:your-email@example.com", id: "gmail" },
   { name: "Resume", icon: <FaFileDownload />, isDownload: true, id: "resume" },
   { name: "Spotify", icon: <FaSpotify />, url: "#", id: "spotify" },
-  { name: "Facebook", icon: <FaFacebook />, url: "#", id: "facebook" }, // Facebook remains for the desktop constellation
+  { name: "Facebook", icon: <FaFacebook />, url: "#", id: "facebook" },
 ];
 
 interface FormData {
@@ -50,7 +50,6 @@ interface FormStatus {
 
 // --- Mobile Socials Component (3x2 Grid Layout) ---
 const MobileSocials = () => {
-  // Filter out Facebook for the mobile view
   const mobileSocialLinks = socialLinks.filter(link => link.id !== 'facebook');
 
   return (
@@ -152,7 +151,8 @@ export default function ContactPage() {
       } else {
         throw new Error('Failed to send message');
       }
-    } catch (error) {
+    // MODIFIED: Renamed 'error' to '_error' to fix the unused variable warning.
+    } catch (_error) {
       clearInterval(progressInterval);
       setStatus({ type: 'error', message: 'Failed to send message. Please try again later.', progress: 0 });
     }
@@ -165,7 +165,7 @@ export default function ContactPage() {
       <div className="relative z-10">
         <div className="mb-4 text-center md:text-left">
           <NeonText>Get In Touch</NeonText>
-          <p className="text-gray-400 mt-4 mb-4 text-sm md:text-base">
+          <p className="text-gray-400 mt-4 text-sm md:text-base">
             Have a project in mind or just want to say hello? Feel free to reach out.
           </p>
         </div>
@@ -182,6 +182,26 @@ export default function ContactPage() {
               transition={{ duration: 0.5 }}
             >
               <form onSubmit={handleSubmit} className="space-y-3">
+                 {/* MODIFIED: Restored the missing progress bar JSX */}
+                 {status.type === 'loading' && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-3">
+                        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                            <span>Sending message...</span>
+                            <span>{Math.round(status.progress || 0)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                            <motion.div
+                                className="h-full bg-gradient-to-r from-accent via-accent/80 to-accent rounded-full relative"
+                                initial={{ width: '0%' }}
+                                animate={{ width: `${status.progress || 0}%` }}
+                                transition={{ duration: 0.3, ease: 'easeOut' }}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                 )}
+
                  {(status.type === 'success' || status.type === 'error') && (
                     <motion.div className={`p-2.5 rounded-md text-xs font-medium ${status.type === 'success' ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>{status.message}</motion.div>
                  )}
