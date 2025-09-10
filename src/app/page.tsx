@@ -21,12 +21,17 @@ interface ScrambleTextProps {
   className?: string;
 }
 
-const ScrambleText: React.FC<ScrambleTextProps> = ({ 
+const ScrambleText: React.FC<ScrambleTextProps> = ({
   texts = ["Data Scientist", "Data Analyst", "Web Developer", "Business Analyst"],
   className = ""
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrambledText, setScrambledText] = useState(texts[0]);
+
+  // Memoize the longest text to prevent recalculation on every render.
+  const longestText = useMemo(() => {
+    return texts.reduce((a, b) => (a.length > b.length ? a : b), "");
+  }, [texts]);
 
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
 
@@ -34,8 +39,8 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({
     let iteration = 0;
     
     const interval = setInterval(() => {
-      setScrambledText(() => {
-        return targetText
+      setScrambledText(
+        targetText
           .split("")
           .map((letter: string, index: number) => {
             if (index < iteration) {
@@ -43,15 +48,15 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({
             }
             return characters[Math.floor(Math.random() * characters.length)];
           })
-          .join("");
-      });
+          .join("")
+      );
 
       if (iteration >= targetText.length) {
         clearInterval(interval);
       }
 
-      iteration += 1;
-    }, 50);
+      iteration += 1; // Controls the speed of the reveal
+    }, 50); // Controls the smoothness of the animation
   };
 
   useEffect(() => {
@@ -59,17 +64,30 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({
       const nextIndex = (currentIndex + 1) % texts.length;
       scrambleText(texts[nextIndex]);
       setCurrentIndex(nextIndex);
-    }, 3000);
+    }, 3000); // Time between text changes
 
     return () => clearInterval(interval);
   }, [currentIndex, texts]);
 
   return (
-    <span className={className}>
-      {scrambledText}
-    </span>
+    // 1. The main container is a relative inline-block. This allows it to have a width
+    // based on its content while being a positioning context for the animated text.
+    <div className="relative inline-block h-auto">
+      {/* 2. Sizer Element: This is the key. It's invisible but occupies space,
+          setting the container's width to that of the longest text. */}
+      <span className={`${className} invisible`} aria-hidden="true">
+        {longestText}
+      </span>
+      {/* 3. Animated Text: This is positioned absolutely within the container.
+          It doesn't affect the layout, and `w-full text-center` ensures that
+          shorter text is centered within the fixed-width container. */}
+      <span className={`${className} absolute inset-0 w-full text-center`}>
+        {scrambledText}
+      </span>
+    </div>
   );
 };
+
 
 export default function Home() {
   const [init, setInit] = useState(false);
