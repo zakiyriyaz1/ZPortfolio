@@ -27,9 +27,9 @@ const downloadResume = () => {
 };
 
 const socialLinks = [
-  { name: "GitHub", icon: <FaGithub />, url: "#", id: "github" },
-  { name: "LinkedIn", icon: <FaLinkedin />, url: "#", id: "linkedin" },
-  { name: "Instagram", icon: <FaInstagram />, url: "#", id: "instagram" },
+  { name: "GitHub", icon: <FaGithub />, url: "https://github.com/zakiyriyaz1", id: "github" },
+  { name: "LinkedIn", icon: <FaLinkedin />, url: "https://www.linkedin.com/in", id: "linkedin" },
+  { name: "Instagram", icon: <FaInstagram />, url: "https://www.instagram.com", id: "instagram" },
   { name: "Gmail", icon: <FaEnvelope />, url: "mailto:your-email@example.com", id: "gmail" },
   { name: "Resume", icon: <FaFileDownload />, isDownload: true, id: "resume" },
   { name: "Spotify", icon: <FaSpotify />, url: "#", id: "spotify" },
@@ -109,7 +109,7 @@ export default function ContactPage() {
   }), []);
 
   const getNodePosition = (index: number) => {
-    const centerX = 220, centerY = 200, radius = 140;
+    const centerX = 280, centerY = 190, radius = 140; // Changed centerY from 170 to 190
     const angle = (index * (360 / socialLinks.length)) * (Math.PI / 180) - (Math.PI / 2);
     return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius };
   };
@@ -151,7 +151,6 @@ export default function ContactPage() {
       } else {
         throw new Error('Failed to send message');
       }
-    // MODIFIED: Removed the unused variable from the catch block.
     } catch {
       clearInterval(progressInterval);
       setStatus({ type: 'error', message: 'Failed to send message. Please try again later.', progress: 0 });
@@ -163,10 +162,12 @@ export default function ContactPage() {
       {init && <Particles id="tsparticles" options={particlesOptions} className="absolute inset-0 z-0 pointer-events-none" />}
       
       <div className="relative z-10">
-        <div className="mb-4 text-center md:text-left">
+        <div className="mb-8 text-center md:text-left">
           <NeonText>Get In Touch</NeonText>
           <p className="text-gray-400 mt-4 text-sm md:text-base">
-            Have a project in mind or just want to say hello? Feel free to reach out.
+            Have a project in mind or just want to say hello? 
+            <br />
+            Feel free to reach out.
           </p>
         </div>
 
@@ -219,7 +220,7 @@ export default function ContactPage() {
                  <motion.button type="submit" disabled={status.type === 'loading'} className="w-full px-4 py-2.5 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-all duration-300 disabled:opacity-50 text-sm flex items-center justify-center" whileHover={status.type !== 'loading' ? { scale: 1.02 } : {}} whileTap={status.type !== 'loading' ? { scale: 0.98 } : {}}>
                     {status.type === 'loading' ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24-24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         Sending...
                       </>
                     ) : ( 'Send Message' )}
@@ -229,7 +230,7 @@ export default function ContactPage() {
           </div>
 
           <motion.div 
-            className="relative w-full h-[400px] overflow-hidden justify-center items-center hidden md:flex"
+            className="relative w-full h-[600px] overflow-hidden justify-center items-center hidden md:flex"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
@@ -237,39 +238,97 @@ export default function ContactPage() {
              <div className="absolute inset-0 bg-gradient-radial from-accent/5 via-transparent to-transparent rounded-full blur-3xl" />
              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
                 <defs>
-                  <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="rgba(34, 211, 238, 0)" /><stop offset="50%" stopColor="rgba(34, 211, 238, 0.6)" /><stop offset="100%" stopColor="rgba(34, 211, 238, 0)" /></linearGradient>
-                  <filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="rgba(34, 211, 238, 0)" />
+                    <stop offset="50%" stopColor="rgba(34, 211, 238, 0.6)" />
+                    <stop offset="100%" stopColor="rgba(34, 211, 238, 0)" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
                 </defs>
                 {socialLinks.map((_, index) => {
                   const nextIndex = (index + 1) % socialLinks.length;
                   const currentPos = getNodePosition(index);
                   const nextPos = getNodePosition(nextIndex);
-                  return (<motion.line key={`connection-${index}`} x1={currentPos.x} y1={currentPos.y} x2={nextPos.x} y2={nextPos.y} stroke="url(#connectionGradient)" strokeWidth="2" filter="url(#glow)" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ pathLength: { duration: 2, delay: index * 0.15 }, opacity: { duration: 0.5, delay: index * 0.15 } }} />);
+                  return (
+                    <motion.line 
+                      key={`connection-${index}`} 
+                      x1={currentPos.x} 
+                      y1={currentPos.y} 
+                      x2={nextPos.x} 
+                      y2={nextPos.y} 
+                      stroke="url(#connectionGradient)" 
+                      strokeWidth="2" 
+                      filter="url(#glow)" 
+                      initial={{ pathLength: 0, opacity: 0 }} 
+                      animate={{ pathLength: 1, opacity: 1 }} 
+                      transition={{ pathLength: { duration: 2, delay: index * 0.15 }, opacity: { duration: 0.5, delay: index * 0.15 } }} 
+                    />
+                  );
                 })}
                 {socialLinks.map((_, index) => {
                   if (index % 2 === 0) {
                     const skipIndex = (index + 2) % socialLinks.length;
                     const currentPos = getNodePosition(index);
                     const skipPos = getNodePosition(skipIndex);
-                    return (<motion.line key={`skip-connection-${index}`} x1={currentPos.x} y1={currentPos.y} x2={skipPos.x} y2={skipPos.y} stroke="rgba(34, 211, 238, 0.15)" strokeWidth="1" strokeDasharray="3,3" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.4 }} transition={{ pathLength: { duration: 2.5, delay: 1 + index * 0.1 }, opacity: { duration: 0.5, delay: 1 + index * 0.1 } }} />);
+                    return (
+                      <motion.line 
+                        key={`skip-connection-${index}`} 
+                        x1={currentPos.x} 
+                        y1={currentPos.y} 
+                        x2={skipPos.x} 
+                        y2={skipPos.y} 
+                        stroke="rgba(34, 211, 238, 0.15)" 
+                        strokeWidth="1" 
+                        strokeDasharray="3,3" 
+                        initial={{ pathLength: 0, opacity: 0 }} 
+                        animate={{ pathLength: 1, opacity: 0.4 }} 
+                        transition={{ pathLength: { duration: 2.5, delay: 1 + index * 0.1 }, opacity: { duration: 0.5, delay: 1 + index * 0.1 } }} 
+                      />
+                    );
                   }
                   return null;
                 })}
              </svg>
              {Array.from({ length: 10 }).map((_, i) => (
-                <motion.div key={`particle-${i}`} className="absolute w-1 h-1 bg-accent/40 rounded-full" initial={{ opacity: 0, x: 180 + Math.cos(i * 0.5) * 120, y: 160 + Math.sin(i * 0.5) * 120 }} animate={{ opacity: [0, 1, 0], x: 180 + Math.cos(i * 0.5 + Date.now() * 0.001) * (110 + Math.sin(i) * 20), y: 160 + Math.sin(i * 0.5 + Date.now() * 0.001) * (110 + Math.cos(i) * 20) }} transition={{ duration: 8 + i * 0.5, repeat: Infinity, delay: i * 0.2, ease: "linear" }} style={{ zIndex: 0 }} />
+                <motion.div 
+                  key={`particle-${i}`} 
+                  className="absolute w-1 h-1 bg-accent/40 rounded-full" 
+                  initial={{ opacity: 0, x: 240 + Math.cos(i * 0.5) * 120, y: 160 + Math.sin(i * 0.5) * 120 }} // Changed y from 140 to 160
+                  animate={{ opacity: [0, 1, 0], x: 240 + Math.cos(i * 0.5 + Date.now() * 0.001) * (110 + Math.sin(i) * 20), y: 160 + Math.sin(i * 0.5 + Date.now() * 0.001) * (110 + Math.cos(i) * 20) }} // Changed y from 140 to 160
+                  transition={{ duration: 8 + i * 0.5, repeat: Infinity, delay: i * 0.2, ease: "linear" }} 
+                  style={{ zIndex: 0 }} 
+                />
               ))}
              {socialLinks.map((link, index) => {
                 const position = getNodePosition(index);
                 return (
-                  <motion.div key={link.id} className="absolute group cursor-pointer" style={{ left: position.x - 40, top: position.y - 40, zIndex: 20 }} onClick={link.isDownload ? downloadResume : undefined} initial={{ opacity: 0, scale: 0, rotate: -180 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.8 + index * 0.15 }} whileHover={{ scale: 1.15, rotate: 5, zIndex: 50, transition: { duration: 0.2 } }} whileTap={{ scale: 0.95 }}>
+                  <motion.div 
+                    key={link.id} 
+                    className="absolute group cursor-pointer" 
+                    style={{ left: position.x - 40, top: position.y - 40, zIndex: 20 }} 
+                    onClick={link.isDownload ? downloadResume : undefined} 
+                    initial={{ opacity: 0, scale: 0, rotate: -180 }} 
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }} 
+                    transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.8 + index * 0.15 }} 
+                    whileHover={{ scale: 1.15, rotate: 5, zIndex: 50, transition: { duration: 0.2 } }} 
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <motion.div className="absolute inset-0 bg-accent/30 rounded-full blur-lg" initial={{ scale: 0, opacity: 0 }} whileHover={{ scale: 2.5, opacity: 1, transition: { duration: 0.3 } }} />
                     <div className="relative w-[80px] h-[80px] bg-transparent border-2 border-accent/40 rounded-full flex flex-col items-center justify-center group-hover:border-accent group-hover:shadow-cyan-glow transition-all duration-300 backdrop-blur-sm">
                       <div className="text-gray-300 group-hover:text-accent transition-colors duration-300 mb-0">{React.cloneElement(link.icon, { size: 30 })}</div>
                       <span className="text-xs font-medium text-gray-400 group-hover:text-accent transition-colors duration-300">{link.name}</span>
                     </div>
                     <motion.div className="absolute inset-0 bg-accent/5 rounded-full border border-accent/20" initial={{ scale: 1, opacity: 0 }} animate={{ scale: [1, 1.3, 1], opacity: [0, 0.3, 0] }} transition={{ duration: 4, repeat: Infinity, delay: index * 0.6, ease: "easeOut" }} />
-                    <motion.div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-accent/95 text-dark px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap pointer-events-none shadow-lg" initial={{ opacity: 0, y: 10, scale: 0.8 }} whileHover={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } }}><div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-transparent border-t-accent/95" />{link.isDownload ? 'Download Resume' : `Connect on ${link.name}`}</motion.div>
+                    <motion.div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-accent/95 text-dark px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap pointer-events-none shadow-lg" initial={{ opacity: 0, y: 10, scale: 0.8 }} whileHover={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } }}>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-transparent border-t-accent/95" />
+                      {link.isDownload ? 'Download Resume' : `Connect on ${link.name}`}
+                    </motion.div>
                     {!link.isDownload && (<a href={link.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0" />)}
                   </motion.div>
                 );

@@ -15,6 +15,62 @@ const Particles = dynamic(() => import('@tsparticles/react'), {
   ssr: false,
 });
 
+// Matrix-like text scramble effect component
+interface ScrambleTextProps {
+  texts?: string[];
+  className?: string;
+}
+
+const ScrambleText: React.FC<ScrambleTextProps> = ({ 
+  texts = ["Data Scientist", "Data Analyst", "Web Developer", "Business Analyst"],
+  className = ""
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [scrambledText, setScrambledText] = useState(texts[0]);
+
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+  const scrambleText = (targetText: string) => {
+    let iteration = 0;
+    
+    const interval = setInterval(() => {
+      setScrambledText(() => {
+        return targetText
+          .split("")
+          .map((letter: string, index: number) => {
+            if (index < iteration) {
+              return targetText[index];
+            }
+            return characters[Math.floor(Math.random() * characters.length)];
+          })
+          .join("");
+      });
+
+      if (iteration >= targetText.length) {
+        clearInterval(interval);
+      }
+
+      iteration += 1;
+    }, 50);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % texts.length;
+      scrambleText(texts[nextIndex]);
+      setCurrentIndex(nextIndex);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [currentIndex, texts]);
+
+  return (
+    <span className={className}>
+      {scrambledText}
+    </span>
+  );
+};
+
 export default function Home() {
   const [init, setInit] = useState(false);
 
@@ -68,7 +124,6 @@ export default function Home() {
         density: {
           enable: true,
         },
-        // MODIFIED: Particle count restored to 200 as requested.
         value: 200,
       },
       opacity: {
@@ -125,27 +180,102 @@ export default function Home() {
           />
         </motion.div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white">
+        <motion.h1 
+          className="text-4xl sm:text-5xl md:text-7xl font-bold text-white"
+          initial={{ 
+            opacity: 0, 
+            y: 50,
+            filter: "blur(10px)"
+          }}
+          animate={{ 
+            opacity: 1, 
+            y: 0,
+            filter: "blur(0px)"
+          }}
+          transition={{
+            duration: 0.8,
+            ease: "easeOut",
+            delay: 0.5
+          }}
+        >
           Zakiy Riyaz
-        </h1>
+        </motion.h1>
 
-        <div className="mt-4">
-          <NeonText className="text-2xl md:text-4xl">Data Scientist</NeonText>
-        </div>
+        <motion.div 
+          className="mt-4"
+          initial={{ 
+            opacity: 0, 
+            scale: 0.8,
+            filter: "blur(5px)"
+          }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            filter: "blur(0px)"
+          }}
+          transition={{
+            duration: 0.6,
+            ease: "easeOut",
+            delay: 0.8
+          }}
+        >
+          <NeonText className="text-2xl md:text-4xl font-mono">
+            <ScrambleText />
+          </NeonText>
+        </motion.div>
 
-        <p className="mt-6 max-w-sm md:max-w-xl text-lg text-gray-300">
+        <motion.p 
+          className="mt-6 max-w-sm md:max-w-xl text-lg text-gray-300"
+          initial={{ 
+            opacity: 0, 
+            y: 30
+          }}
+          animate={{ 
+            opacity: 1, 
+            y: 0
+          }}
+          transition={{
+            duration: 0.6,
+            ease: "easeOut",
+            delay: 1.1
+          }}
+        >
           I specialize in uncovering the stories hidden within data and building modern, engaging web experiences.
-        </p>
+        </motion.p>
 
-        {/* Buttons now stack on mobile (flex-col) and are side-by-side on larger screens (sm:flex-row). */}
-        <div className="mt-8 flex w-full max-w-xs sm:max-w-none sm:w-auto flex-col sm:flex-row items-center gap-4">
+        {/* Buttons with staggered animation */}
+        <motion.div 
+          className="mt-8 flex w-full max-w-xs sm:max-w-none sm:w-auto flex-col sm:flex-row items-center gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.4 }}
+        >
           <Link href="/projects" className="w-full sm:w-auto">
             <motion.button
               className="w-full sm:w-auto px-7 py-3 font-bold rounded-md bg-transparent text-white border-2 border-white"
               style={{
                 boxShadow: "0 0 8px #fff, inset 0 0 8px #fff",
               }}
-              whileHover={{ scale: 1.05, boxShadow: "0 0 12px #fff, inset 0 0 12px #fff" }}
+              initial={{ 
+                opacity: 0, 
+                y: 20,
+                scale: 0.9
+              }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                scale: 1
+              }}
+              transition={{
+                duration: 0.5,
+                ease: "easeOut",
+                delay: 1.6
+              }}
+              whileHover={{ 
+                scale: 1.05, 
+                boxShadow: "0 0 12px #fff, inset 0 0 12px #fff",
+                transition: { duration: 0.2 }
+              }}
               whileTap={{ scale: 0.95 }}
             >
               View My Work
@@ -155,13 +285,31 @@ export default function Home() {
           <Link href="/contact" className="w-full sm:w-auto">
             <motion.button
               className="w-full sm:w-auto px-8 py-3.5 font-bold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
-              whileHover={{ scale: 1.05 }}
+              initial={{ 
+                opacity: 0, 
+                y: 20,
+                scale: 0.9
+              }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                scale: 1
+              }}
+              transition={{
+                duration: 0.5,
+                ease: "easeOut",
+                delay: 1.8
+              }}
+              whileHover={{ 
+                scale: 1.05,
+                transition: { duration: 0.2 }
+              }}
               whileTap={{ scale: 0.95 }}
             >
               Contact Me!
             </motion.button>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
