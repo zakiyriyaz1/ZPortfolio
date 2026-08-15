@@ -22,8 +22,19 @@ button {
   cursor: none;
 }
 
-/* While Z-WING is open the ship IS the cursor, so hide the site's custom
-   cursor -- otherwise the yellow arrow floats on top of the spaceship. */
-html[data-zgame="open"] .zk-cursor {
+/* While actually flying in Z-WING the ship IS the cursor, so hide the site's
+   custom cursor -- otherwise the yellow arrow floats over the spaceship.
+   On the game's menus it stays visible, or the buttons can't be aimed at. */
+html[data-zgame="playing"] .zk-cursor {
   display: none;
+}
+
+/* CustomCursor injects a global `* { cursor: none !important }`. On the game
+   menus, re-enable a real pointer for the controls -- a more specific selector
+   wins over `*` even though both are !important. */
+html[data-zgame="menu"] button {
+  cursor: pointer !important;
+}
+html[data-zgame="menu"] input {
+  cursor: text !important;
 }
