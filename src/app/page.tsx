@@ -142,7 +142,7 @@ export default function Home() {
         density: {
           enable: true,
         },
-        value: 200,
+        value: 100,
       },
       opacity: {
         value: 0.3,
@@ -191,9 +191,9 @@ export default function Home() {
           <Image
             src="/images/Screenshot_20250907_230028_Gallery.jpg"
             alt="Profile Picture"
-            layout="fill"
-            objectFit="cover"
-            className="rounded-full"
+            fill
+            sizes="(max-width: 768px) 128px, 160px"
+            className="rounded-full object-cover"
             priority
           />
         </motion.div>

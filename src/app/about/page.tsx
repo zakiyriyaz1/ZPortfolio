@@ -44,7 +44,7 @@ export default function AboutPage() {
   const [isPaused, setIsPaused] = useState(false);
 
   const introText = "Hello! I'm Zakiy.";
-  const bioText = `I  am a recent Data Science graduate with a knack for turning complex data into stories that make sense.\n\nWhether it's building sleek dashboards, crafting intuitive websites, or exploring side projects, I enjoy creating solutions that don't just look good—but actually drive insight and impact.\n\nBeyond the numbers, I'm fueled by a love for philosophy, global politics, and the arts—music, poetry, and literature. These interests shape how I approach problems: technical yet human, analytical yet creative.`;
+  const bioText = `I am a recent Data Science graduate with a knack for turning complex data into stories that make sense.\n\nWhether it's building sleek dashboards, crafting intuitive websites, or exploring side projects, I enjoy creating solutions that don't just look good—but actually drive insight and impact.\n\nBeyond the numbers, I'm fueled by a love for philosophy, global politics, and the arts—music, poetry, and literature. These interests shape how I approach problems: technical yet human, analytical yet creative.`;
 
   return (
     <section className="p-4 md:p-8">

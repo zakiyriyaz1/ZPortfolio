@@ -16,7 +16,7 @@ export default function Sidebar() {
 
   return (
     // On small screens, it's a thin `w-20` bar. On large (`lg`) screens, it expands to `w-60`.
-    <aside className="relative z-10 w-20 lg:w-60 flex-shrink-0 flex flex-col items-center lg:items-start justify-center bg-[#020403] text-gray-300 p-2 lg:p-4 transition-all duration-300 ease-in-out">
+    <aside className="relative z-10 w-20 lg:w-60 flex-shrink-0 flex flex-col items-center lg:items-start justify-center bg-light dark:bg-[#020403] text-gray-600 dark:text-gray-300 p-2 lg:p-4 transition-all duration-300 ease-in-out">
       <nav className="w-full">
         <ul className="flex flex-col items-stretch space-y-6">
           {navItems.map((item) => {
@@ -30,7 +30,7 @@ export default function Sidebar() {
                     ${
                       isActive
                         ? 'text-accent'
-                        : 'text-gray-500 group-hover:text-white'
+                        : 'text-gray-500 dark:text-gray-500 group-hover:text-dark dark:group-hover:text-white'
                     }`
                   }
                 >

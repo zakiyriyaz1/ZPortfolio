@@ -56,7 +56,7 @@ export default function AutoScroller({ skills, duration = 40, isPaused }: AutoSc
       {extendedSkills.map((skill, index) => (
         <motion.div
           key={index}
-          className="flex flex-col items-center justify-center p-4 bg-[#141921] rounded-xl text-gray-400"
+          className="flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-[#141921] text-gray-600 dark:text-gray-400 rounded-xl"
           whileHover={{ 
             scale: 1.1,
             y: -5,

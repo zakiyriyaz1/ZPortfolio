@@ -9,7 +9,15 @@ const CustomCursor = () => {
   const [cursorVariant, setCursorVariant] = useState("default");
   const [preClickVariant, setPreClickVariant] = useState("default");
 
+  const [isFinePointer, setIsFinePointer] = useState(false);
+
   useEffect(() => {
+    setIsFinePointer(window.matchMedia('(pointer: fine)').matches);
+  }, []);
+
+  useEffect(() => {
+    if (!isFinePointer) return;
+
     const style = document.createElement('style');
     // This is the updated, more forceful CSS rule
     style.innerHTML = `
@@ -51,7 +59,7 @@ const CustomCursor = () => {
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [preClickVariant]);
+  }, [preClickVariant, isFinePointer]);
 
   const svgVariants: Variants = {
     default: {
@@ -93,6 +101,8 @@ const CustomCursor = () => {
     clicking: { opacity: 0 },
     text: { opacity: 1, transition: { delay: 0.1 } }
   };
+
+  if (!isFinePointer) return null;
 
   return (
     <motion.svg

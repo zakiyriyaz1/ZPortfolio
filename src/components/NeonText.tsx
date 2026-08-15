@@ -10,7 +10,7 @@ interface NeonTextProps {
 const NeonText: React.FC<NeonTextProps> = ({ children, className }) => {
   return (
     // Combine the default classes with any passed className
-    <h1 className={`text-4xl font-bold text-cyan-400 transition-all duration-300 ${className}`} style={{ textShadow: '0 0 5px currentColor' }}>
+    <h1 className={`text-4xl font-bold text-cyan-600 dark:text-cyan-400 transition-all duration-300 ${className}`} style={{ textShadow: '0 0 5px currentColor' }}>
       {children}
     </h1>
   );
