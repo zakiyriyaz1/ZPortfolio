@@ -30,17 +30,25 @@ const WAVES_PER_SECTOR = 5;        // every 5th wave is a boss
 const START_LIVES = 3;
 const MAX_LIVES = 6;
 // Pickups are deliberately scarce. Firepower should feel earned over a run
-// rather than showered on the player -- generous drops made the game trivial
-// and visually chaotic.
+// rather than showered on the player.
 const DROP_CHANCE = 0.05;          // chance a regular kill drops a pickup
-const UPGRADE_EVERY = 4;           // guaranteed weapon upgrade every N waves cleared
+
+// Classic Galaga only lets a couple of your shots exist at once. Capping
+// on-screen bullets is what keeps the screen readable at high weapon marks --
+// an upgrade widens your spread rather than flooding the playfield.
+const BULLETS_ON_SCREEN = [3, 5, 7, 9];   // by mark: MK.I .. MK.IV
+const PLAYER_BULLET_SPEED = -8.5;         // was -12; deliberately languid
+
+// Only ever this many enemies peeling out of formation at once, so a wave
+// pressures you in sequence instead of all rushing at once.
+const maxDivers = (wave: number) => Math.min(4, 1 + Math.floor(wave / 6));
 
 const ENEMY_TYPES = {
-  grunt:   { hp: 1, score: 100, color: "#c084fc", r: 13, fire: 0.0010, dive: 0.0007 },
-  soldier: { hp: 2, score: 150, color: "#f472b6", r: 14, fire: 0.0019, dive: 0.0005 },
-  diver:   { hp: 1, score: 200, color: "#fb923c", r: 12, fire: 0.0004, dive: 0.0075 },
-  weaver:  { hp: 2, score: 250, color: "#34d399", r: 13, fire: 0.0015, dive: 0.0009 },
-  tank:    { hp: 6, score: 500, color: "#ef4444", r: 20, fire: 0.0024, dive: 0.0002 },
+  grunt:   { hp: 1, score: 100, color: "#c084fc", r: 13, fire: 0.0008, dive: 0.0006 },
+  soldier: { hp: 2, score: 150, color: "#f472b6", r: 14, fire: 0.0014, dive: 0.0004 },
+  diver:   { hp: 1, score: 200, color: "#fb923c", r: 12, fire: 0.0003, dive: 0.0050 },
+  weaver:  { hp: 2, score: 250, color: "#34d399", r: 13, fire: 0.0011, dive: 0.0007 },
+  tank:    { hp: 6, score: 500, color: "#ef4444", r: 20, fire: 0.0018, dive: 0.0002 },
 } as const;
 
 type EnemyKind = keyof typeof ENEMY_TYPES;
@@ -239,12 +247,12 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
     // formation grows slowly, so each wave reads as its own step up rather
     // than blurring into the next.
     const pool: EnemyKind[] = ["grunt"];
-    if (wave >= 4) pool.push("soldier");
-    if (wave >= 7) pool.push("diver");
-    if (wave >= 11) pool.push("weaver");
+    if (wave >= 5) pool.push("soldier");
+    if (wave >= 9) pool.push("diver");
+    if (wave >= 13) pool.push("weaver");
 
-    const cols = Math.min(8, 4 + Math.floor(wave / 4));
-    const rows = Math.min(5, 2 + Math.floor(wave / 5));
+    const cols = Math.min(8, 4 + Math.floor(wave / 5));
+    const rows = Math.min(4, 2 + Math.floor(wave / 7));
     const spacingX = Math.min(86, (g.w - 120) / cols);
     const startX = (g.w - (cols - 1) * spacingX) / 2;
 
@@ -253,8 +261,8 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       for (let c = 0; c < cols; c++) {
         // Front rows get the tougher archetypes.
         let kind: EnemyKind = pool[Math.min(pool.length - 1, Math.floor(rand(0, pool.length)))];
-        if (r === 0 && wave >= 4) kind = "soldier";
-        if (wave >= 12 && r === 0 && c % 4 === 0) kind = "tank";
+        if (r === 0 && wave >= 5) kind = "soldier";
+        if (wave >= 16 && r === 0 && c % 4 === 0) kind = "tank";
 
         const spec = ENEMY_TYPES[kind];
         const x = startX + c * spacingX;
@@ -435,9 +443,10 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         g.shake = 26;
         boom(g, b.x, b.y, "#f472b6", 70, 2.4);
         boom(g, b.x, b.y, SHIP_COLOR, 40, 1.8);
-        // Bosses always yield an upgrade plus a bonus drop.
-        dropPickup(g, b.x - 30, b.y, true);
-        dropPickup(g, b.x + 30, b.y);
+        // The boss is the sole source of weapon marks. Granted outright rather
+        // than dropped, so a hard-won kill can't be wasted by a missed pickup.
+        if (g.level < 4) grantPower(g, "upgrade");
+        dropPickup(g, b.x, b.y);
         g.boss = null;
         g.banner = { text: "SECTOR CLEAR", sub: "", t: 120 };
       }
@@ -583,9 +592,51 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       }
       ctx.closePath();
       ctx.fill();
+
+      // Per-variant detailing, so the three bosses read as different ships at
+      // a glance rather than as recolours of one silhouette.
+      ctx.shadowBlur = 0;
+      if (b.variant === 0) {
+        // DREADNOUGHT: armoured bridge spine + engine bank
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(-14, -30, 28, 46);
+        ctx.fillStyle = "#f87171";
+        for (let i = -2; i <= 2; i++) ctx.fillRect(i * 15 - 3, 30, 6, 10);
+      } else if (b.variant === 1) {
+        // HIVE CARRIER: honeycomb of launch cells
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        for (let row = 0; row < 2; row++) {
+          for (let i = 0; i < 5; i++) {
+            const hx = -48 + i * 24 + (row % 2 ? 12 : 0);
+            const hy = -18 + row * 26;
+            ctx.beginPath();
+            for (let k = 0; k < 6; k++) {
+              const a = (Math.PI / 3) * k - Math.PI / 2;
+              const px = hx + Math.cos(a) * 9, py = hy + Math.sin(a) * 9;
+              if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+      } else {
+        // WARDEN: counter-rotating guard rings
+        ctx.strokeStyle = base;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.85;
+        for (let i = 0; i < 2; i++) {
+          const rot = b.t / (i ? -55 : 40);
+          ctx.beginPath();
+          ctx.arc(0, 0, 34 + i * 13, rot, rot + Math.PI * 1.15);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
       // core
       ctx.fillStyle = SHIP_COLOR;
       ctx.shadowColor = SHIP_COLOR;
+      ctx.shadowBlur = 18;
       ctx.beginPath();
       ctx.arc(0, -2, 13 + Math.sin(b.t / 8) * 2, 0, Math.PI * 2);
       ctx.fill();
@@ -645,19 +696,30 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         g.ship.y += (g.target.y - g.ship.y) * 0.22;
 
         /* ---- firing ---- */
+        // Volleys are gated by an on-screen bullet budget, not just a cooldown.
+        // Higher marks raise the budget, so an upgrade means a wider, denser
+        // spread rather than an unreadable wall of projectiles.
+        const budget = BULLETS_ON_SCREEN[Math.min(3, g.level - 1)] + (rapid ? 3 : 0);
         g.cooldown -= 1;
-        if (g.cooldown <= 0) {
+        if (g.cooldown <= 0 && g.bullets.length < budget) {
           for (const p of shotPorts(g.level, spread)) {
-            g.bullets.push({ x: g.ship.x + p.x, y: g.ship.y - 16, vx: p.vx * 11, vy: -12, r: 3 });
+            g.bullets.push({
+              x: g.ship.x + p.x, y: g.ship.y - 16,
+              vx: p.vx * 9, vy: PLAYER_BULLET_SPEED, r: 3,
+            });
           }
-          g.cooldown = (rapid ? 5 : 11) - Math.min(3, g.level - 1);
+          g.cooldown = rapid ? 6 : 12;
         }
 
         /* ---- enemies ---- */
-        g.swayT += 0.012;
-        const sway = Math.sin(g.swayT) * Math.min(75, 24 + g.wave * 5);
+        g.swayT += 0.0085;
+        const sway = Math.sin(g.swayT) * Math.min(70, 22 + g.wave * 4);
         let alive = 0;
-        const waveSpeed = 1 + g.wave * 0.04;
+        const waveSpeed = 1 + g.wave * 0.025;
+        // Enforce the concurrent-dive ceiling.
+        let divingNow = 0;
+        for (const e of g.enemies) if (e.alive && e.diving) divingNow++;
+        const diveCap = maxDivers(g.wave);
 
         for (const e of g.enemies) {
           if (!e.alive) continue;
@@ -667,9 +729,9 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
           const spec = ENEMY_TYPES[e.kind];
 
           if (e.diving) {
-            e.y += (e.kind === "diver" ? 5.2 : 3.4) * waveSpeed;
-            e.x += e.diveVX + Math.sin(e.t * 2) * 1.5;
-            if (e.y > h + 40) { e.diving = false; e.y = -30; }
+            e.y += (e.kind === "diver" ? 4.0 : 2.7) * waveSpeed;
+            e.x += e.diveVX + Math.sin(e.t * 2) * 1.3;
+            if (e.y > h + 40) { e.diving = false; e.y = -30; divingNow--; }
           } else if (e.kind === "weaver") {
             e.x = e.homeX + sway + Math.sin(e.t * 1.6) * 26;
             e.y = e.homeY + Math.cos(e.t * 1.2) * 12;
@@ -678,13 +740,14 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
             e.y = e.homeY + Math.sin(e.t) * 5;
           }
 
-          if (!e.diving && Math.random() < spec.dive * (1 + g.wave * 0.06)) {
+          if (!e.diving && divingNow < diveCap && Math.random() < spec.dive * (1 + g.wave * 0.04)) {
             e.diving = true;
-            e.diveVX = (g.ship.x - e.x) / 110;
+            divingNow++;
+            e.diveVX = (g.ship.x - e.x) / 130;
           }
-          if (Math.random() < spec.fire * (1 + g.wave * 0.05)) {
+          if (Math.random() < spec.fire * (1 + g.wave * 0.035)) {
             const ang = Math.atan2(g.ship.y - e.y, g.ship.x - e.x);
-            const speed = 3.6 + g.wave * 0.12;
+            const speed = 2.9 + g.wave * 0.07;
             const aimed = e.kind === "soldier" || e.kind === "tank";
             g.enemyBullets.push({
               x: e.x, y: e.y + 12,
@@ -747,12 +810,9 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
           // Guaranteed reward for clearing: a weapon upgrade on the cadence,
           // otherwise a random powerup. Keeps the player's firepower scaling
           // with the difficulty instead of relying purely on drop luck.
-          // Only the upgrade cadence is guaranteed -- clearing a wave no longer
-          // showers a pickup every single time. It's granted outright rather
-          // than dropped: a pickup spawned at the top takes ~7s to fall and was
-          // frequently missed, which meant arriving at a boss under-gunned.
-          const clearedCount = g.wave - 1;
-          if (clearedCount % UPGRADE_EVERY === 0 && g.level < 4) grantPower(g, "upgrade");
+          // Weapon marks come ONLY from killing a sector boss -- one per boss,
+          // so MK.IV lands around wave 15 rather than within the first minute.
+          // Clearing a normal wave is worth points and nothing else.
           g.invuln = Math.max(g.invuln, 70); // breathing room as the wave lands
           buildWave(g, g.wave);
         }
@@ -1099,7 +1159,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
             <span><span style={{ color: POWER_META.life.color }}>♥</span> extra life (rare)</span>
             <span><span style={{ color: SHIP_COLOR }}>^</span> weapon upgrade</span>
             <span className="col-span-2 pt-1 text-gray-600">
-              drops are scarce — MK.I → MK.IV is earned over a run
+              drops are scarce — weapon marks come only from killing a boss
             </span>
           </div>
           <button
