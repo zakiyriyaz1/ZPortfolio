@@ -21,3 +21,9 @@ a,
 button {
   cursor: none;
 }
+
+/* While Z-WING is open the ship IS the cursor, so hide the site's custom
+   cursor -- otherwise the yellow arrow floats on top of the spaceship. */
+html[data-zgame="open"] .zk-cursor {
+  display: none;
+}
