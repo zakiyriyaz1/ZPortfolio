@@ -53,16 +53,16 @@ const MobileSocials = () => {
   const mobileSocialLinks = socialLinks;
 
   return (
-    <motion.div 
+    <motion.div
       className="grid md:hidden grid-cols-3 gap-y-6 gap-x-4 my-8"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.5 }}
     >
       {mobileSocialLinks.map((link, index) => (
         <motion.div
           key={link.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 + index * 0.05 }}
           whileHover={{ scale: 1.1, y: -2, transition: { duration: 0.2 } }}
@@ -178,7 +178,7 @@ export default function ContactPage() {
             <MobileSocials />
 
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
@@ -229,9 +229,9 @@ export default function ContactPage() {
             </motion.div>
           </div>
 
-          <motion.div 
+          <motion.div
             className="relative w-full h-[600px] overflow-hidden justify-center items-center hidden md:flex"
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
@@ -312,10 +312,10 @@ export default function ContactPage() {
                     key={link.id} 
                     className="absolute group cursor-pointer" 
                     style={{ left: position.x - 40, top: position.y - 40, zIndex: 20 }} 
-                    onClick={link.isDownload ? downloadResume : undefined} 
-                    initial={{ opacity: 0, scale: 0, rotate: -180 }} 
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }} 
-                    transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.8 + index * 0.15 }} 
+                    onClick={link.isDownload ? downloadResume : undefined}
+                    initial={false}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.8 + index * 0.15 }}
                     whileHover={{ scale: 1.15, rotate: 5, zIndex: 50, transition: { duration: 0.2 } }} 
                     whileTap={{ scale: 0.95 }}
                   >

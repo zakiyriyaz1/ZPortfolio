@@ -86,7 +86,10 @@ export default function ProjectsPage() {
       <motion.div
         key={activeCategory}
         variants={containerVariants}
-        initial="hidden"
+        // DIAGNOSTIC: initial={false} renders straight into the "visible" state
+        // instead of starting at opacity 0 and animating in. If the disappearing
+        // -content bug goes away with this, the entrance animation was the cause.
+        initial={false}
         animate="visible"
         // MODIFIED: Reduced gap on mobile (gap-4) for a tighter layout.
         className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8"
