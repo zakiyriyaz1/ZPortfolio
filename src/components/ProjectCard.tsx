@@ -93,9 +93,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
       ) : (
         // Expanded Modal View - Consistent Width
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
+          // Transform-only: the modal body must never be able to open invisible.
+          initial={{ y: 12 }}
+          animate={{ y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
           className="h-auto max-h-[90vh] overflow-hidden flex flex-col w-full"
           style={{ width: '100%', maxWidth: '64rem' }} // Consistent expanded width
         >

@@ -8,8 +8,8 @@ export default function NotFound() {
   return (
     <section className="min-h-full flex flex-col items-center justify-center text-center p-4 md:p-8">
       <motion.div
-        initial={false}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ y: 18 }}
+        animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <NeonText className="text-6xl md:text-8xl">404</NeonText>

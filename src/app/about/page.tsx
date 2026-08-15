@@ -53,8 +53,8 @@ export default function AboutPage() {
         <div className="space-y-6">
           <NeonText>About Me</NeonText>
           <motion.div
-            initial={false}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ x: -18 }}
+            animate={{ x: 0 }}
             transition={{ duration: 0.5 }}
             className="space-y-4"
           >
@@ -83,9 +83,9 @@ export default function AboutPage() {
 
         {/* Right Column: Auto-scrolling Skills */}
         <motion.div
-          initial={false}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          initial={{ x: 18 }}
+          animate={{ x: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
         >
           <div
             className="h-[350px] md:h-[500px] overflow-hidden px-4"
