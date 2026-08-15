@@ -4,33 +4,30 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 
 /**
- * Wraps each page. Deliberately renders content with NO entrance animation.
+ * Wraps each page and gives it a subtle slide-up entrance on navigation.
  *
- * Why: this previously used Framer Motion's <AnimatePresence mode="wait">,
- * where every page mounted at opacity: 0 and only became visible once an
- * animation ran to completion. That makes visibility depend on the animation
- * succeeding -- and if the animation stalls for any reason (a stalled
- * compositor, a throttled rAF loop, an AnimatePresence exit handshake that
- * never fires), the page is left permanently invisible even though all of its
- * content is present and correct in the DOM. That matches the reported bug
- * exactly: content there but unseen, nothing in the console, a hard refresh
- * working, and clicking around sometimes shaking it loose.
+ * THE RULE HERE: animate transform only, never opacity.
  *
- * Rather than guess at which specific stall was to blame, this removes the
- * failure mode: content is visible by default and nothing has to run for it to
- * show up.
+ * This previously used Framer Motion's <AnimatePresence mode="wait">, where
+ * every page mounted at opacity: 0 and only became visible once an animation
+ * ran to completion. That makes visibility depend on an animation succeeding,
+ * so any stall left the page permanently invisible even though its content was
+ * present and correct in the DOM -- the "content flashes then disappears" bug.
  *
- * `key={pathname}` is kept so React still remounts page content on navigation.
- * `my-auto` keeps the vertical centering fix.
+ * A transform-only animation cannot reproduce that. Content is always fully
+ * opaque; the worst case if the animation never runs is that it sits 14px
+ * lower than intended, still perfectly readable. The `rise` keyframes
+ * (tailwind.config.ts) also deliberately carry no fill-mode, so the element's
+ * resting state is its natural position.
  *
- * If an entrance animation is added back later, animate transform only (or
- * start from opacity: 1) so that a stalled animation can never hide content.
+ * `key={pathname}` remounts on navigation, which restarts the animation.
+ * `my-auto` keeps the vertical centering.
  */
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   return (
-    <div key={pathname} className="w-full my-auto">
+    <div key={pathname} className="w-full my-auto motion-safe:animate-rise">
       {children}
     </div>
   );

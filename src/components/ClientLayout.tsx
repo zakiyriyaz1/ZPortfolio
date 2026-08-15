@@ -19,7 +19,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <Header />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">
+          {/* pt-* gives content breathing room below the header. It sits on
+              <main> rather than on each page so every route gets it, and it
+              stacks with the my-auto centering inside PageTransition: short
+              pages stay centred, tall pages keep a guaranteed gap instead of
+              butting up against the header. */}
+          <main className="flex-1 overflow-y-auto flex flex-col pt-6 md:pt-10">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>

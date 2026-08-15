@@ -9,14 +9,16 @@ import NeonText from "@/components/NeonText";
 // MODIFIED: Changed "ML Project" to "Machine Learning"
 const categories = ["Pinned", "Website", "Dashboard", "Machine Learning"];
 
+// Transform-only stagger: the cards slide up into place but are never
+// transparent, so a stalled animation can't leave the grid invisible.
 const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
+  hidden: { y: 18 },
+  visible: { y: 0 },
 };
 
 export default function ProjectsPage() {
@@ -86,10 +88,7 @@ export default function ProjectsPage() {
       <motion.div
         key={activeCategory}
         variants={containerVariants}
-        // DIAGNOSTIC: initial={false} renders straight into the "visible" state
-        // instead of starting at opacity 0 and animating in. If the disappearing
-        // -content bug goes away with this, the entrance animation was the cause.
-        initial={false}
+        initial="hidden"
         animate="visible"
         // MODIFIED: Reduced gap on mobile (gap-4) for a tighter layout.
         className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8"
@@ -109,8 +108,10 @@ export default function ProjectsPage() {
         {selectedProject && (
           <motion.div 
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            // Opens at full opacity so the overlay can never be stuck invisible;
+            // only the close still fades (exit runs on an element that's already
+            // on screen, so a stall there can't hide anything).
+            initial={false}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedId(null)}
           >
