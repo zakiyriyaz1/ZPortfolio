@@ -111,7 +111,7 @@ const CustomCursor = () => {
       viewBox="0 0 32 32"
       variants={svgVariants}
       animate={cursorVariant}
-      className="fixed top-0 left-0 pointer-events-none z-[9999]"
+      className="zk-cursor fixed top-0 left-0 pointer-events-none z-[9999]"
       style={{ originX: 0, originY: 0 }}
     >
       <defs>

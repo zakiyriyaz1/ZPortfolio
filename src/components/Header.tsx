@@ -3,12 +3,17 @@
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { FaSun, FaMoon, FaFileDownload } from "react-icons/fa";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Lazy-loaded so the game's canvas code never lands in the initial bundle --
+// it only downloads when someone actually clicks the logo.
+const SpaceGame = dynamic(() => import("@/components/SpaceGame"), { ssr: false });
 
 const Header = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -31,19 +36,28 @@ const Header = () => {
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 120, damping: 14, delay: 0.2 }}
     >
-      <Link href="/">
-        <motion.h1
+      {/* The logo launches the Z-WING game. Home is still reachable from the
+          sidebar, so nothing is lost by repurposing it as the easter egg. */}
+      <button
+        onClick={() => setGameOpen(true)}
+        aria-label="Play Z-WING"
+        className="group relative flex items-center"
+      >
+        <motion.span
           className="font-cyber text-3xl text-accent cursor-pointer"
           style={{ textShadow: '0 0 10px rgba(34, 211, 238, 0.8)' }}
-          whileHover={{ 
+          whileHover={{
             scale: 1.05,
             textShadow: '0 0 20px rgba(34, 211, 238, 1)'
           }}
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
           Z
-        </motion.h1>
-      </Link>
+        </motion.span>
+        <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap font-mono text-[10px] uppercase tracking-widest text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-70">
+          play
+        </span>
+      </button>
       <div className="flex items-center space-x-5">
         <motion.button
           onClick={downloadResume}
@@ -69,6 +83,8 @@ const Header = () => {
           {theme === "dark" ? <FaSun size={18} /> : <FaMoon size={18} />}
         </motion.button>
       </div>
+
+      {gameOpen && <SpaceGame onClose={() => setGameOpen(false)} />}
     </motion.header>
   );
 };
