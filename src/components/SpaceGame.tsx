@@ -5,57 +5,104 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * "Z-WING" -- a Galaga-style arcade shooter that takes over the screen.
  *
- * Launched from the Z logo in the header. The mouse cursor becomes the ship
- * (the site's custom cursor is hidden while playing), and WASD / arrow keys
- * work too. Firing is automatic so it stays playable one-handed with a mouse;
- * Space fires an extra shot on demand.
+ * Launched from the Z logo in the header. The ship is the site's own custom
+ * cursor: the same yellow arrow path, same glow. It gains hardware as you
+ * collect upgrades, so the silhouette grows over a run.
+ *
+ * Structure
+ *  - Five enemy archetypes with distinct movement/fire behaviour.
+ *  - Waves escalate; every 5th wave is a multi-phase SECTOR BOSS.
+ *  - Permanent ship upgrades (MK.I -> MK.IV) from upgrade drops.
+ *  - Temporary powerups: rapid fire, spread, shield, and an instant smart bomb.
  *
  * Everything runs on one <canvas> driven by a single requestAnimationFrame
  * loop. All mutable game state lives in a ref rather than React state -- the
- * loop mutates it 60x a second, and putting that in state would re-render the
- * component just as often. Only the HUD numbers (score/lives/wave) are mirrored
- * into React state, and only when they actually change.
+ * loop mutates it ~60x a second, and putting that in state would re-render the
+ * component just as often. Only HUD values are mirrored into state, and only
+ * when they actually change.
  */
 
-const ACCENT = "#22d3ee";
-const ENEMY = "#c084fc";
-const ENEMY_ALT = "#f472b6";
+/* ----------------------------- tuning ---------------------------------- */
+
+const SHIP_COLOR = "#FFEC00";      // matches CustomCursor
+const ACCENT = "#22d3ee";          // site brand cyan
+const WAVES_PER_SECTOR = 5;        // every 5th wave is a boss
+const START_LIVES = 4;
+const DROP_CHANCE = 0.18;          // chance a regular kill drops a pickup
+const UPGRADE_EVERY = 2;           // guaranteed weapon upgrade every N waves cleared
+
+const ENEMY_TYPES = {
+  grunt:   { hp: 1, score: 100, color: "#c084fc", r: 13, fire: 0.0010, dive: 0.0007 },
+  soldier: { hp: 2, score: 150, color: "#f472b6", r: 14, fire: 0.0019, dive: 0.0005 },
+  diver:   { hp: 1, score: 200, color: "#fb923c", r: 12, fire: 0.0004, dive: 0.0075 },
+  weaver:  { hp: 2, score: 250, color: "#34d399", r: 13, fire: 0.0015, dive: 0.0009 },
+  tank:    { hp: 6, score: 500, color: "#ef4444", r: 20, fire: 0.0024, dive: 0.0002 },
+} as const;
+
+type EnemyKind = keyof typeof ENEMY_TYPES;
+type PowerKind = "rapid" | "spread" | "shield" | "bomb" | "upgrade";
+
+const POWER_META: Record<PowerKind, { label: string; color: string; ms: number }> = {
+  rapid:   { label: "R", color: "#22d3ee", ms: 8000 },
+  spread:  { label: "S", color: "#a78bfa", ms: 8000 },
+  shield:  { label: "O", color: "#34d399", ms: 9000 },
+  bomb:    { label: "B", color: "#f87171", ms: 0 },
+  upgrade: { label: "^", color: SHIP_COLOR, ms: 0 },
+};
+
+/* ----------------------------- types ----------------------------------- */
 
 type Vec = { x: number; y: number };
-
-type Bullet = Vec & { vy: number; vx: number };
-type Enemy = Vec & {
-  homeX: number;
-  homeY: number;
-  alive: boolean;
-  hp: number;
-  kind: 0 | 1;
-  diving: boolean;
-  t: number;
-  diveVX: number;
-};
+type Bullet = Vec & { vx: number; vy: number; r: number };
+type Pickup = Vec & { vy: number; kind: PowerKind; t: number };
 type Particle = Vec & { vx: number; vy: number; life: number; max: number; color: string };
 type Star = Vec & { z: number };
 
+type Enemy = Vec & {
+  homeX: number; homeY: number;
+  kind: EnemyKind;
+  hp: number;
+  alive: boolean;
+  diving: boolean;
+  t: number;
+  diveVX: number;
+  flash: number;
+};
+
+type Boss = {
+  x: number; y: number;
+  hp: number; maxHp: number;
+  phase: 1 | 2 | 3;
+  t: number;
+  dir: number;
+  fireT: number;
+  flash: number;
+  entering: boolean;
+};
+
 type Game = {
-  w: number;
-  h: number;
+  w: number; h: number;
   ship: Vec;
   target: Vec;
   bullets: Bullet[];
   enemyBullets: Bullet[];
   enemies: Enemy[];
+  pickups: Pickup[];
   particles: Particle[];
   stars: Star[];
+  boss: Boss | null;
   cooldown: number;
   invuln: number;
   swayT: number;
+  shake: number;
   score: number;
   lives: number;
   wave: number;
+  level: number;                       // ship mark, 1-4
+  timers: Record<string, number>;       // powerup expiry timestamps
   over: boolean;
   keys: Set<string>;
-  spawnTimer: number;
+  banner: { text: string; sub: string; t: number } | null;
 };
 
 const MOVE_KEYS = new Set([
@@ -63,9 +110,64 @@ const MOVE_KEYS = new Set([
   "a", "d", "w", "s", "A", "D", "W", "S", " ",
 ]);
 
-function rand(min: number, max: number) {
-  return Math.random() * (max - min) + min;
+const rand = (a: number, b: number) => Math.random() * (b - a) + a;
+const now = () => performance.now();
+
+/* ---------------------------- leaderboard ------------------------------
+ * Scores are kept locally. To make the board genuinely global, point
+ * LEADERBOARD_ENDPOINT at an HTTP endpoint that accepts POST {name, score,
+ * wave} and returns GET -> Entry[]. The site is a static export, so it can't
+ * host that itself; it needs an external service. Until one is configured this
+ * degrades to a local, per-browser board.
+ */
+const LEADERBOARD_ENDPOINT: string | null = null;
+const LB_KEY = "zwing-scores";
+const LB_MAX = 10;
+
+type Entry = { name: string; score: number; wave: number; at: number };
+
+async function loadScores(): Promise<Entry[]> {
+  if (LEADERBOARD_ENDPOINT) {
+    try {
+      const res = await fetch(LEADERBOARD_ENDPOINT, { cache: "no-store" });
+      if (res.ok) return (await res.json()) as Entry[];
+    } catch { /* fall through to local */ }
+  }
+  try {
+    return JSON.parse(window.localStorage.getItem(LB_KEY) || "[]") as Entry[];
+  } catch { return []; }
 }
+
+async function submitScore(entry: Entry): Promise<Entry[]> {
+  if (LEADERBOARD_ENDPOINT) {
+    try {
+      await fetch(LEADERBOARD_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      return await loadScores();
+    } catch { /* fall through to local */ }
+  }
+  const list = await loadScores();
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score);
+  const top = list.slice(0, LB_MAX);
+  try { window.localStorage.setItem(LB_KEY, JSON.stringify(top)); } catch { /* ignore */ }
+  return top;
+}
+
+/** Muzzle offsets/angles for each ship mark. */
+function shotPorts(level: number, spread: boolean): { x: number; vx: number }[] {
+  const base =
+    level >= 4 ? [{ x: -7, vx: 0 }, { x: 7, vx: 0 }, { x: -15, vx: -0.28 }, { x: 15, vx: 0.28 }]
+    : level === 3 ? [{ x: 0, vx: 0 }, { x: -10, vx: -0.2 }, { x: 10, vx: 0.2 }]
+    : level === 2 ? [{ x: -6, vx: 0 }, { x: 6, vx: 0 }]
+    : [{ x: 0, vx: 0 }];
+  return spread ? [...base, { x: -20, vx: -0.55 }, { x: 20, vx: 0.55 }] : base;
+}
+
+/* ============================== component ============================== */
 
 export default function SpaceGame({ onClose }: { onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -73,96 +175,113 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
   const rafRef = useRef<number | null>(null);
 
   const [started, setStarted] = useState(false);
-  const [hud, setHud] = useState({ score: 0, lives: 3, wave: 1 });
   const [gameOver, setGameOver] = useState(false);
   const [best, setBest] = useState(0);
+  const [scores, setScores] = useState<Entry[]>([]);
+  const [name, setName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [hud, setHud] = useState({
+    score: 0, lives: 3, wave: 1, sector: 1, level: 1,
+    boss: null as { hp: number; max: number; phase: number } | null,
+    powers: [] as { k: PowerKind; pct: number }[],
+  });
 
-  // Personal best, persisted locally. Wrapped because Safari private mode can
-  // throw on localStorage access.
   useEffect(() => {
     try {
       const v = window.localStorage.getItem("zwing-best");
       if (v) setBest(parseInt(v, 10) || 0);
-    } catch {
-      /* ignore */
-    }
+      const n = window.localStorage.getItem("zwing-name");
+      if (n) setName(n);
+    } catch { /* private mode */ }
   }, []);
 
   const commitBest = useCallback((score: number) => {
     setBest((prev) => {
       if (score <= prev) return prev;
-      try {
-        window.localStorage.setItem("zwing-best", String(score));
-      } catch {
-        /* ignore */
-      }
+      try { window.localStorage.setItem("zwing-best", String(score)); } catch { /* ignore */ }
       return score;
     });
   }, []);
 
-  /** Build a fresh wave of enemies in a Galaga-style formation. */
+  /* ------------------------- spawning helpers ------------------------- */
+
   const buildWave = useCallback((g: Game, wave: number) => {
+    // Every 5th wave is a boss instead of a formation.
+    if (wave % WAVES_PER_SECTOR === 0) {
+      const sector = wave / WAVES_PER_SECTOR;
+      const maxHp = 55 + sector * 40;
+      g.boss = {
+        x: g.w / 2, y: -120, hp: maxHp, maxHp,
+        phase: 1, t: 0, dir: 1, fireT: 0, flash: 0, entering: true,
+      };
+      g.enemies = [];
+      g.banner = { text: `SECTOR ${sector} BOSS`, sub: "destroy the mothership", t: 150 };
+      return;
+    }
+
+    // Difficulty ramp: which archetypes are in the mix, and how many.
+    const pool: EnemyKind[] = ["grunt"];
+    if (wave >= 3) pool.push("soldier");
+    if (wave >= 4) pool.push("diver");
+    if (wave >= 6) pool.push("weaver");
+
     const cols = Math.min(9, 5 + Math.floor(wave / 2));
     const rows = Math.min(5, 2 + Math.floor(wave / 3));
-    const spacingX = Math.min(88, (g.w - 120) / cols);
+    const spacingX = Math.min(86, (g.w - 120) / cols);
     const startX = (g.w - (cols - 1) * spacingX) / 2;
+
     const enemies: Enemy[] = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
+        // Front rows get the tougher archetypes.
+        let kind: EnemyKind = pool[Math.min(pool.length - 1, Math.floor(rand(0, pool.length)))];
+        if (r === 0 && wave >= 3) kind = "soldier";
+        if (wave >= 8 && r === 0 && c % 4 === 0) kind = "tank";
+
+        const spec = ENEMY_TYPES[kind];
         const x = startX + c * spacingX;
-        const y = 90 + r * 62;
+        const y = 96 + r * 60;
         enemies.push({
-          x, y, homeX: x, homeY: y,
-          alive: true,
-          hp: r === 0 ? 2 : 1,
-          kind: r === 0 ? 1 : 0,
-          diving: false,
-          t: Math.random() * Math.PI * 2,
-          diveVX: 0,
+          x, y, homeX: x, homeY: y, kind,
+          hp: spec.hp + Math.floor(wave / 7),
+          alive: true, diving: false,
+          t: Math.random() * Math.PI * 2, diveVX: 0, flash: 0,
         });
       }
     }
     g.enemies = enemies;
+    g.boss = null;
+    g.banner = { text: `WAVE ${wave}`, sub: "", t: 90 };
   }, []);
 
   const resetGame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
     const g: Game = {
       w, h,
       ship: { x: w / 2, y: h - 90 },
       target: { x: w / 2, y: h - 90 },
-      bullets: [], enemyBullets: [], enemies: [], particles: [],
-      stars: Array.from({ length: 110 }, () => ({
-        x: Math.random() * w, y: Math.random() * h, z: rand(0.25, 1.4),
+      bullets: [], enemyBullets: [], enemies: [], pickups: [], particles: [],
+      stars: Array.from({ length: 130 }, () => ({
+        x: Math.random() * w, y: Math.random() * h, z: rand(0.25, 1.5),
       })),
-      cooldown: 0, invuln: 0, swayT: 0,
-      score: 0, lives: 3, wave: 1,
+      boss: null,
+      cooldown: 0, invuln: 0, swayT: 0, shake: 0,
+      score: 0, lives: START_LIVES, wave: 1, level: 1,
+      timers: {},
       over: false,
       keys: new Set(),
-      spawnTimer: 0,
+      banner: null,
     };
     buildWave(g, 1);
     gameRef.current = g;
-    setHud({ score: 0, lives: 3, wave: 1 });
     setGameOver(false);
+    setHud({ score: 0, lives: START_LIVES, wave: 1, sector: 1, level: 1, boss: null, powers: [] });
   }, [buildWave]);
 
-  const explode = (g: Game, x: number, y: number, color: string, count = 14) => {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = rand(0.6, 4);
-      g.particles.push({
-        x, y,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 1, max: rand(18, 36), color,
-      });
-    }
-  };
+  /* ------------------------------ loop -------------------------------- */
 
-  // ---- main loop -------------------------------------------------------
   useEffect(() => {
     if (!started) return;
     const canvas = canvasRef.current;
@@ -176,225 +295,533 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       canvas.height = Math.floor(canvas.clientHeight * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const g = gameRef.current;
-      if (g) {
-        g.w = canvas.clientWidth;
-        g.h = canvas.clientHeight;
-      }
+      if (g) { g.w = canvas.clientWidth; g.h = canvas.clientHeight; }
     };
     fit();
     if (!gameRef.current) resetGame();
     window.addEventListener("resize", fit);
 
+    /* ---- input ---- */
     const onMove = (e: MouseEvent) => {
-      const g = gameRef.current;
-      if (!g) return;
+      const g = gameRef.current; if (!g) return;
       const r = canvas.getBoundingClientRect();
       g.target.x = e.clientX - r.left;
       g.target.y = e.clientY - r.top;
     };
     const onTouch = (e: TouchEvent) => {
-      const g = gameRef.current;
-      if (!g || !e.touches[0]) return;
+      const g = gameRef.current; if (!g || !e.touches[0]) return;
       const r = canvas.getBoundingClientRect();
       g.target.x = e.touches[0].clientX - r.left;
       g.target.y = e.touches[0].clientY - r.top;
       e.preventDefault();
     };
+    const norm = (k: string) => (k.length === 1 ? k.toLowerCase() : k);
     const onKeyDown = (e: KeyboardEvent) => {
-      const g = gameRef.current;
-      if (!g) return;
-      if (MOVE_KEYS.has(e.key)) e.preventDefault(); // stop the page scrolling
-      g.keys.add(e.key.length === 1 ? e.key.toLowerCase() : e.key);
-      if (e.key === " " && g.cooldown > 3) g.cooldown = 3;
+      const g = gameRef.current; if (!g) return;
+      if (MOVE_KEYS.has(e.key)) e.preventDefault();
+      g.keys.add(norm(e.key));
+      if (e.key === " " && g.cooldown > 2) g.cooldown = 2;
     };
-    const onKeyUp = (e: KeyboardEvent) => {
-      gameRef.current?.keys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key);
-    };
+    const onKeyUp = (e: KeyboardEvent) => gameRef.current?.keys.delete(norm(e.key));
+    // Pause input state if the tab loses focus, so the ship doesn't drift.
+    const onBlur = () => gameRef.current?.keys.clear();
 
     window.addEventListener("mousemove", onMove);
     canvas.addEventListener("touchmove", onTouch, { passive: false });
     canvas.addEventListener("touchstart", onTouch, { passive: false });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
 
-    let lastHud = { score: -1, lives: -1, wave: -1 };
+    /* ---- helpers bound to this loop ---- */
+    const boom = (g: Game, x: number, y: number, color: string, n = 14, power = 1) => {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, sp = rand(0.6, 4) * power;
+        g.particles.push({
+          x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: 0, max: rand(18, 38), color,
+        });
+      }
+    };
+
+    const dropPickup = (g: Game, x: number, y: number, forceUpgrade = false) => {
+      const roll = Math.random();
+      let kind: PowerKind;
+      if (forceUpgrade) kind = "upgrade";
+      else if (roll < 0.3) kind = "rapid";
+      else if (roll < 0.55) kind = "spread";
+      else if (roll < 0.8) kind = "shield";
+      else if (roll < 0.93) kind = "bomb";
+      else kind = "upgrade";
+      g.pickups.push({ x, y, vy: 1.5, kind, t: 0 });
+    };
+
+    const grantPower = (g: Game, kind: PowerKind) => {
+      if (kind === "upgrade") {
+        g.level = Math.min(4, g.level + 1);
+        g.banner = { text: `MK.${["I", "II", "III", "IV"][g.level - 1]}`, sub: "weapons upgraded", t: 90 };
+        return;
+      }
+      if (kind === "bomb") {
+        // Smart bomb: clear every enemy bullet, damage everything on screen.
+        g.enemyBullets = [];
+        for (const e of g.enemies) {
+          if (!e.alive) continue;
+          e.hp -= 3;
+          if (e.hp <= 0) { e.alive = false; g.score += ENEMY_TYPES[e.kind].score; boom(g, e.x, e.y, ENEMY_TYPES[e.kind].color); }
+        }
+        if (g.boss) { g.boss.hp -= 25; g.boss.flash = 10; }
+        g.shake = 18;
+        boom(g, g.ship.x, g.ship.y, "#f87171", 40, 2);
+        return;
+      }
+      g.timers[kind] = now() + POWER_META[kind].ms;
+    };
+
+    const damageBoss = (g: Game, dmg: number) => {
+      const b = g.boss; if (!b || b.entering) return;
+      b.hp -= dmg; b.flash = 6;
+      const pct = b.hp / b.maxHp;
+      const nextPhase = pct <= 0.33 ? 3 : pct <= 0.66 ? 2 : 1;
+      if (nextPhase !== b.phase) {
+        b.phase = nextPhase as 1 | 2 | 3;
+        g.shake = 14;
+        boom(g, b.x, b.y, "#f472b6", 30, 1.6);
+        g.banner = { text: `PHASE ${b.phase}`, sub: "", t: 70 };
+      }
+      if (b.hp <= 0) {
+        const sector = Math.floor(g.wave / WAVES_PER_SECTOR);
+        g.score += 1500 + sector * 500;
+        g.shake = 26;
+        boom(g, b.x, b.y, "#f472b6", 70, 2.4);
+        boom(g, b.x, b.y, SHIP_COLOR, 40, 1.8);
+        // Bosses always yield an upgrade plus a bonus drop.
+        dropPickup(g, b.x - 30, b.y, true);
+        dropPickup(g, b.x + 30, b.y);
+        g.boss = null;
+        g.banner = { text: "SECTOR CLEAR", sub: "", t: 120 };
+      }
+    };
+
+    /* ---- draw: the ship, built from the site's cursor arrow ---- */
+    const drawShip = (g: Game) => {
+      const { x, y } = g.ship;
+      const shield = g.timers.shield && g.timers.shield > now();
+      const blink = g.invuln > 0 && Math.floor(g.invuln / 5) % 2 === 0;
+      if (blink) return;
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Upgrade hardware sits behind the arrow so the cursor stays the hero.
+      if (g.level >= 2) {
+        ctx.fillStyle = ACCENT;
+        ctx.shadowColor = ACCENT;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(-16, 2, 6, 13);
+        ctx.fillRect(10, 2, 6, 13);
+      }
+      if (g.level >= 3) {
+        ctx.fillStyle = ACCENT;
+        ctx.fillRect(-24, 6, 5, 10);
+        ctx.fillRect(19, 6, 5, 10);
+      }
+      if (g.level >= 4) {
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-28, 10, 4, 7);
+        ctx.fillRect(24, 10, 4, 7);
+        ctx.globalAlpha = 1;
+      }
+
+      // thruster
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(-2.5, 12, 5, rand(6, 15));
+      ctx.globalAlpha = 1;
+
+      // The cursor arrow itself: same path as CustomCursor, rotated to fly up.
+      ctx.save();
+      ctx.rotate(-Math.PI / 2);
+      const s = 1.15;
+      ctx.scale(s, s);
+      ctx.translate(-16, -16);
+      ctx.shadowColor = SHIP_COLOR;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = SHIP_COLOR;
+      ctx.beginPath();
+      ctx.moveTo(2, 2);
+      ctx.lineTo(28, 16);
+      ctx.lineTo(2, 30);
+      ctx.lineTo(10, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      if (shield) {
+        ctx.strokeStyle = "#34d399";
+        ctx.shadowColor = "#34d399";
+        ctx.shadowBlur = 16;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.75 + Math.sin(now() / 90) * 0.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 30, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    };
+
+    const drawEnemy = (e: Enemy) => {
+      const spec = ENEMY_TYPES[e.kind];
+      const col = e.flash > 0 ? "#ffffff" : spec.color;
+      const r = spec.r;
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.shadowColor = spec.color;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      if (e.kind === "tank") {
+        // chunky hexagon
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI / 3) * i - Math.PI / 2;
+          const px = Math.cos(a) * r, py = Math.sin(a) * r * 0.85;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+      } else if (e.kind === "diver") {
+        // downward dart
+        ctx.moveTo(0, r); ctx.lineTo(r * 0.8, -r * 0.6);
+        ctx.lineTo(0, -r * 0.2); ctx.lineTo(-r * 0.8, -r * 0.6);
+      } else if (e.kind === "weaver") {
+        // diamond
+        ctx.moveTo(0, -r); ctx.lineTo(r * 0.8, 0);
+        ctx.lineTo(0, r); ctx.lineTo(-r * 0.8, 0);
+      } else {
+        // classic invader silhouette
+        ctx.moveTo(0, -r * 0.85); ctx.lineTo(r, r * 0.25);
+        ctx.lineTo(r * 0.55, r * 0.25); ctx.lineTo(r * 0.7, r * 0.85);
+        ctx.lineTo(0, r * 0.45); ctx.lineTo(-r * 0.7, r * 0.85);
+        ctx.lineTo(-r * 0.55, r * 0.25); ctx.lineTo(-r, r * 0.25);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    };
+
+    const drawBoss = (b: Boss) => {
+      const phaseCol = b.phase === 3 ? "#f87171" : b.phase === 2 ? "#f472b6" : "#c084fc";
+      const col = b.flash > 0 ? "#ffffff" : phaseCol;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.shadowColor = phaseCol;
+      ctx.shadowBlur = 26;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(0, 46); ctx.lineTo(-40, 22); ctx.lineTo(-72, 6);
+      ctx.lineTo(-52, -26); ctx.lineTo(0, -40); ctx.lineTo(52, -26);
+      ctx.lineTo(72, 6); ctx.lineTo(40, 22);
+      ctx.closePath();
+      ctx.fill();
+      // core
+      ctx.fillStyle = SHIP_COLOR;
+      ctx.shadowColor = SHIP_COLOR;
+      ctx.beginPath();
+      ctx.arc(0, -2, 13 + Math.sin(b.t / 8) * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    };
+
+    /* ------------------------------ tick ------------------------------ */
+    let lastHudKey = "";
 
     const step = () => {
       const g = gameRef.current;
       if (!g) return;
       const { w, h } = g;
+      const t = now();
+
+      ctx.save();
+      if (g.shake > 0) {
+        ctx.translate(rand(-g.shake, g.shake) * 0.4, rand(-g.shake, g.shake) * 0.4);
+        g.shake *= 0.9;
+        if (g.shake < 0.4) g.shake = 0;
+      }
 
       ctx.fillStyle = "#05060a";
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(-40, -40, w + 80, h + 80);
 
-      // starfield
       for (const s of g.stars) {
-        s.y += s.z * 1.6;
+        s.y += s.z * 1.7;
         if (s.y > h) { s.y = -2; s.x = Math.random() * w; }
-        ctx.globalAlpha = 0.25 + s.z * 0.5;
-        ctx.fillStyle = s.z > 1 ? ACCENT : "#ffffff";
-        ctx.fillRect(s.x, s.y, s.z > 1 ? 2 : 1, s.z > 1 ? 2 : 1);
+        ctx.globalAlpha = 0.22 + s.z * 0.5;
+        ctx.fillStyle = s.z > 1.1 ? ACCENT : "#ffffff";
+        const sz = s.z > 1.1 ? 2 : 1;
+        ctx.fillRect(s.x, s.y, sz, sz);
       }
       ctx.globalAlpha = 1;
 
-      if (!g.over) {
-        // --- ship movement: keyboard nudges the target, mouse sets it ---
-        const speed = 7;
-        if (g.keys.has("arrowleft") || g.keys.has("ArrowLeft") || g.keys.has("a")) g.target.x -= speed;
-        if (g.keys.has("arrowright") || g.keys.has("ArrowRight") || g.keys.has("d")) g.target.x += speed;
-        if (g.keys.has("arrowup") || g.keys.has("ArrowUp") || g.keys.has("w")) g.target.y -= speed;
-        if (g.keys.has("arrowdown") || g.keys.has("ArrowDown") || g.keys.has("s")) g.target.y += speed;
+      const rapid = !!(g.timers.rapid && g.timers.rapid > t);
+      const spread = !!(g.timers.spread && g.timers.spread > t);
+      const shielded = !!(g.timers.shield && g.timers.shield > t);
 
-        g.target.x = Math.max(20, Math.min(w - 20, g.target.x));
-        g.target.y = Math.max(h * 0.35, Math.min(h - 40, g.target.y));
-        // ease toward the target so movement feels weighty rather than snapping
+      if (!g.over) {
+        /* ---- ship ---- */
+        const sp = 7.5;
+        if (g.keys.has("ArrowLeft") || g.keys.has("a")) g.target.x -= sp;
+        if (g.keys.has("ArrowRight") || g.keys.has("d")) g.target.x += sp;
+        if (g.keys.has("ArrowUp") || g.keys.has("w")) g.target.y -= sp;
+        if (g.keys.has("ArrowDown") || g.keys.has("s")) g.target.y += sp;
+        g.target.x = Math.max(24, Math.min(w - 24, g.target.x));
+        g.target.y = Math.max(h * 0.3, Math.min(h - 40, g.target.y));
         g.ship.x += (g.target.x - g.ship.x) * 0.22;
         g.ship.y += (g.target.y - g.ship.y) * 0.22;
 
-        // --- firing (automatic) ---
+        /* ---- firing ---- */
         g.cooldown -= 1;
         if (g.cooldown <= 0) {
-          g.bullets.push({ x: g.ship.x, y: g.ship.y - 18, vy: -11, vx: 0 });
-          g.cooldown = 11;
+          for (const p of shotPorts(g.level, spread)) {
+            g.bullets.push({ x: g.ship.x + p.x, y: g.ship.y - 16, vx: p.vx * 11, vy: -12, r: 3 });
+          }
+          g.cooldown = (rapid ? 5 : 11) - Math.min(3, g.level - 1);
         }
 
-        // --- enemies ---
+        /* ---- enemies ---- */
         g.swayT += 0.012;
-        const sway = Math.sin(g.swayT) * Math.min(70, 24 + g.wave * 5);
-        let aliveCount = 0;
+        const sway = Math.sin(g.swayT) * Math.min(75, 24 + g.wave * 5);
+        let alive = 0;
+        const waveSpeed = 1 + g.wave * 0.04;
 
         for (const e of g.enemies) {
           if (!e.alive) continue;
-          aliveCount++;
+          alive++;
           e.t += 0.03;
+          if (e.flash > 0) e.flash--;
+          const spec = ENEMY_TYPES[e.kind];
+
           if (e.diving) {
-            e.y += 3.4 + g.wave * 0.25;
-            e.x += e.diveVX + Math.sin(e.t * 2) * 1.4;
-            if (e.y > h + 40) { // wrap back to formation
-              e.diving = false;
-              e.y = -30;
-            }
+            e.y += (e.kind === "diver" ? 5.2 : 3.4) * waveSpeed;
+            e.x += e.diveVX + Math.sin(e.t * 2) * 1.5;
+            if (e.y > h + 40) { e.diving = false; e.y = -30; }
+          } else if (e.kind === "weaver") {
+            e.x = e.homeX + sway + Math.sin(e.t * 1.6) * 26;
+            e.y = e.homeY + Math.cos(e.t * 1.2) * 12;
           } else {
             e.x = e.homeX + sway;
             e.y = e.homeY + Math.sin(e.t) * 5;
           }
 
-          // occasional dive + shots
-          if (!e.diving && Math.random() < 0.0009 + g.wave * 0.00012) {
+          if (!e.diving && Math.random() < spec.dive * (1 + g.wave * 0.06)) {
             e.diving = true;
             e.diveVX = (g.ship.x - e.x) / 110;
           }
-          if (Math.random() < 0.0012 + g.wave * 0.00015) {
-            g.enemyBullets.push({ x: e.x, y: e.y + 14, vy: 4.2 + g.wave * 0.15, vx: 0 });
+          if (Math.random() < spec.fire * (1 + g.wave * 0.05)) {
+            const ang = Math.atan2(g.ship.y - e.y, g.ship.x - e.x);
+            const speed = 3.6 + g.wave * 0.12;
+            const aimed = e.kind === "soldier" || e.kind === "tank";
+            g.enemyBullets.push({
+              x: e.x, y: e.y + 12,
+              vx: aimed ? Math.cos(ang) * speed : 0,
+              vy: aimed ? Math.sin(ang) * speed : speed,
+              r: 4,
+            });
           }
         }
 
-        // wave cleared
-        if (aliveCount === 0) {
+        /* ---- boss ---- */
+        const b = g.boss;
+        if (b) {
+          b.t += 1;
+          if (b.flash > 0) b.flash--;
+          if (b.entering) {
+            b.y += 2.2;
+            if (b.y >= 130) { b.y = 130; b.entering = false; }
+          } else {
+            const speed = 1.4 + b.phase * 0.9;
+            b.x += b.dir * speed;
+            if (b.x < 110) { b.x = 110; b.dir = 1; }
+            if (b.x > w - 110) { b.x = w - 110; b.dir = -1; }
+            b.y = 130 + Math.sin(b.t / 40) * 18;
+
+            b.fireT -= 1;
+            if (b.fireT <= 0) {
+              const bs = 3.4 + b.phase * 0.4;
+              if (b.phase === 1) {
+                for (let i = -2; i <= 2; i++) {
+                  g.enemyBullets.push({ x: b.x, y: b.y + 40, vx: i * 1.1, vy: bs, r: 5 });
+                }
+                b.fireT = 62;
+              } else if (b.phase === 2) {
+                const ang = Math.atan2(g.ship.y - b.y, g.ship.x - b.x);
+                for (let i = -1; i <= 1; i++) {
+                  g.enemyBullets.push({
+                    x: b.x, y: b.y + 40,
+                    vx: Math.cos(ang + i * 0.16) * bs,
+                    vy: Math.sin(ang + i * 0.16) * bs, r: 5,
+                  });
+                }
+                b.fireT = 38;
+              } else {
+                const n = 10;
+                for (let i = 0; i < n; i++) {
+                  const a = (Math.PI * 2 * i) / n + b.t / 40;
+                  g.enemyBullets.push({ x: b.x, y: b.y, vx: Math.cos(a) * bs * 0.75, vy: Math.sin(a) * bs * 0.75, r: 5 });
+                }
+                b.fireT = 66;
+              }
+            }
+          }
+        }
+
+        /* ---- wave / sector progression ---- */
+        if (alive === 0 && !g.boss) {
           g.wave += 1;
-          g.score += 150;
+          g.score += 200;
+          // Guaranteed reward for clearing: a weapon upgrade on the cadence,
+          // otherwise a random powerup. Keeps the player's firepower scaling
+          // with the difficulty instead of relying purely on drop luck.
+          const clearedCount = g.wave - 1;
+          dropPickup(g, g.w / 2, 60, clearedCount % UPGRADE_EVERY === 0);
+          g.invuln = Math.max(g.invuln, 70); // breathing room as the wave lands
           buildWave(g, g.wave);
         }
 
-        // --- bullets ---
-        g.bullets = g.bullets.filter((b) => {
-          b.y += b.vy;
-          return b.y > -20;
-        });
-        g.enemyBullets = g.enemyBullets.filter((b) => {
-          b.y += b.vy;
-          return b.y < h + 20;
-        });
+        /* ---- projectiles ---- */
+        for (const p of g.bullets) { p.x += p.vx; p.y += p.vy; }
+        g.bullets = g.bullets.filter((p) => p.y > -30 && p.x > -30 && p.x < w + 30);
+        for (const p of g.enemyBullets) { p.x += p.vx; p.y += p.vy; }
+        g.enemyBullets = g.enemyBullets.filter((p) => p.y < h + 30 && p.y > -60 && p.x > -40 && p.x < w + 40);
 
-        // player bullets vs enemies
-        for (const b of g.bullets) {
+        // player bullets -> enemies / boss
+        for (const p of g.bullets) {
+          if (p.y < -20) continue;
+          if (g.boss && !g.boss.entering &&
+              Math.abs(p.x - g.boss.x) < 66 && Math.abs(p.y - g.boss.y) < 40) {
+            p.y = -999;
+            damageBoss(g, 1);
+            continue;
+          }
           for (const e of g.enemies) {
             if (!e.alive) continue;
-            if (Math.abs(b.x - e.x) < 18 && Math.abs(b.y - e.y) < 16) {
-              b.y = -999;
-              e.hp -= 1;
+            const rr = ENEMY_TYPES[e.kind].r;
+            if (Math.abs(p.x - e.x) < rr && Math.abs(p.y - e.y) < rr) {
+              p.y = -999;
+              e.hp -= 1; e.flash = 3;
               if (e.hp <= 0) {
                 e.alive = false;
-                g.score += e.kind === 1 ? 150 : 100;
-                explode(g, e.x, e.y, e.kind === 1 ? ENEMY_ALT : ENEMY);
-              } else {
-                explode(g, e.x, e.y, "#ffffff", 5);
+                g.score += ENEMY_TYPES[e.kind].score;
+                boom(g, e.x, e.y, ENEMY_TYPES[e.kind].color);
+                // Tanks always drop; others occasionally.
+                if (e.kind === "tank") dropPickup(g, e.x, e.y, Math.random() < 0.6);
+                else if (Math.random() < DROP_CHANCE) dropPickup(g, e.x, e.y);
               }
               break;
             }
           }
         }
-        g.bullets = g.bullets.filter((b) => b.y > -20);
+        g.bullets = g.bullets.filter((p) => p.y > -30);
 
-        // hazards vs player
+        /* ---- pickups ---- */
+        for (const p of g.pickups) { p.y += p.vy; p.t += 1; }
+        g.pickups = g.pickups.filter((p) => {
+          if (p.y > h + 30) return false;
+          if (Math.abs(p.x - g.ship.x) < 30 && Math.abs(p.y - g.ship.y) < 30) {
+            grantPower(g, p.kind);
+            g.score += 50;
+            boom(g, p.x, p.y, POWER_META[p.kind].color, 12);
+            return false;
+          }
+          return true;
+        });
+
+        /* ---- damage to player ---- */
         g.invuln -= 1;
-        const hit = (x: number, y: number, r: number) =>
+        const near = (x: number, y: number, r: number) =>
           Math.abs(x - g.ship.x) < r && Math.abs(y - g.ship.y) < r;
 
         if (g.invuln <= 0) {
           let struck = false;
-          for (const b of g.enemyBullets) {
-            if (hit(b.x, b.y, 15)) { struck = true; b.y = h + 999; break; }
+          for (const p of g.enemyBullets) {
+            if (near(p.x, p.y, 16)) { struck = true; p.y = h + 999; break; }
           }
           if (!struck) {
             for (const e of g.enemies) {
-              if (e.alive && e.diving && hit(e.x, e.y, 24)) {
-                struck = true;
-                e.alive = false;
-                explode(g, e.x, e.y, ENEMY);
+              if (e.alive && e.diving && near(e.x, e.y, 26)) {
+                struck = true; e.alive = false;
+                boom(g, e.x, e.y, ENEMY_TYPES[e.kind].color);
                 break;
               }
             }
           }
           if (struck) {
-            g.lives -= 1;
-            g.invuln = 110;
-            explode(g, g.ship.x, g.ship.y, ACCENT, 30);
-            if (g.lives <= 0) {
-              g.over = true;
-              setGameOver(true);
-              commitBest(g.score);
+            if (shielded) {
+              // Shield absorbs the hit and is consumed.
+              delete g.timers.shield;
+              g.invuln = 60;
+              g.shake = 10;
+              boom(g, g.ship.x, g.ship.y, "#34d399", 26, 1.4);
+            } else {
+              g.lives -= 1;
+              // Generous recovery window -- dying used to also cost a weapon
+              // mark, which turned one mistake into a death spiral. Upgrades
+              // are now kept on death.
+              g.invuln = 150;
+              g.shake = 16;
+              boom(g, g.ship.x, g.ship.y, SHIP_COLOR, 34, 1.8);
+              if (g.lives <= 0) {
+                g.over = true;
+                setGameOver(true);
+                commitBest(g.score);
+              }
             }
           }
         }
-        g.enemyBullets = g.enemyBullets.filter((b) => b.y < h + 20);
+        g.enemyBullets = g.enemyBullets.filter((p) => p.y < h + 20);
       }
 
-      // --- draw enemies ---
-      for (const e of g.enemies) {
-        if (!e.alive) continue;
-        const col = e.kind === 1 ? ENEMY_ALT : ENEMY;
+      /* ------------------------------ draw ---------------------------- */
+      for (const e of g.enemies) if (e.alive) drawEnemy(e);
+      if (g.boss) drawBoss(g.boss);
+
+      // pickups
+      for (const p of g.pickups) {
+        const meta = POWER_META[p.kind];
         ctx.save();
-        ctx.translate(e.x, e.y);
-        ctx.shadowColor = col;
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = col;
-        // little crab-ish invader shape
-        ctx.beginPath();
-        ctx.moveTo(0, -11);
-        ctx.lineTo(13, 3);
-        ctx.lineTo(7, 3);
-        ctx.lineTo(9, 11);
-        ctx.lineTo(0, 6);
-        ctx.lineTo(-9, 11);
-        ctx.lineTo(-7, 3);
-        ctx.lineTo(-13, 3);
-        ctx.closePath();
-        ctx.fill();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.sin(p.t / 18) * 0.35);
+        ctx.shadowColor = meta.color;
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = meta.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-11, -11, 22, 22);
+        ctx.fillStyle = meta.color;
+        ctx.font = "bold 14px ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(meta.label, 0, 1);
         ctx.restore();
+        ctx.shadowBlur = 0;
       }
 
-      // --- draw bullets ---
+      // bullets
       ctx.shadowBlur = 10;
-      ctx.shadowColor = ACCENT;
-      ctx.fillStyle = ACCENT;
-      for (const b of g.bullets) ctx.fillRect(b.x - 1.5, b.y - 10, 3, 12);
-      ctx.shadowColor = ENEMY_ALT;
-      ctx.fillStyle = ENEMY_ALT;
-      for (const b of g.enemyBullets) ctx.fillRect(b.x - 2, b.y - 6, 4, 10);
+      ctx.shadowColor = SHIP_COLOR;
+      ctx.fillStyle = SHIP_COLOR;
+      for (const p of g.bullets) ctx.fillRect(p.x - 1.75, p.y - 11, 3.5, 13);
+      ctx.shadowColor = "#f472b6";
+      ctx.fillStyle = "#f472b6";
+      for (const p of g.enemyBullets) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.shadowBlur = 0;
 
-      // --- particles ---
+      // particles
       g.particles = g.particles.filter((p) => {
         p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.life += 1;
         const a = 1 - p.life / p.max;
@@ -406,37 +833,44 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         return true;
       });
 
-      // --- draw ship ---
-      if (!g.over) {
-        const blink = g.invuln > 0 && Math.floor(g.invuln / 5) % 2 === 0;
-        if (!blink) {
-          ctx.save();
-          ctx.translate(g.ship.x, g.ship.y);
-          ctx.shadowColor = ACCENT;
-          ctx.shadowBlur = 18;
-          ctx.fillStyle = ACCENT;
-          ctx.beginPath();
-          ctx.moveTo(0, -20);
-          ctx.lineTo(13, 12);
-          ctx.lineTo(4, 7);
-          ctx.lineTo(0, 15);
-          ctx.lineTo(-4, 7);
-          ctx.lineTo(-13, 12);
-          ctx.closePath();
-          ctx.fill();
-          // thruster
-          ctx.globalAlpha = 0.75;
-          ctx.fillStyle = "#fff";
-          ctx.fillRect(-2, 13, 4, rand(5, 12));
-          ctx.globalAlpha = 1;
-          ctx.restore();
+      if (!g.over) drawShip(g);
+
+      // banner
+      if (g.banner) {
+        g.banner.t -= 1;
+        const a = Math.min(1, g.banner.t / 30);
+        ctx.globalAlpha = a;
+        ctx.textAlign = "center";
+        ctx.fillStyle = SHIP_COLOR;
+        ctx.shadowColor = SHIP_COLOR;
+        ctx.shadowBlur = 16;
+        ctx.font = "bold 34px ui-monospace, monospace";
+        ctx.fillText(g.banner.text, w / 2, h * 0.42);
+        if (g.banner.sub) {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#9ca3af";
+          ctx.font = "13px ui-monospace, monospace";
+          ctx.fillText(g.banner.sub, w / 2, h * 0.42 + 26);
         }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        if (g.banner.t <= 0) g.banner = null;
       }
 
-      // mirror HUD into React only when the numbers change
-      if (g.score !== lastHud.score || g.lives !== lastHud.lives || g.wave !== lastHud.wave) {
-        lastHud = { score: g.score, lives: g.lives, wave: g.wave };
-        setHud({ score: g.score, lives: g.lives, wave: g.wave });
+      ctx.restore();
+
+      /* ---- mirror HUD ---- */
+      const powers = (["rapid", "spread", "shield"] as PowerKind[])
+        .filter((k) => g.timers[k] && g.timers[k] > t)
+        .map((k) => ({ k, pct: Math.max(0, (g.timers[k] - t) / POWER_META[k].ms) }));
+      const bossHud = g.boss && !g.boss.entering
+        ? { hp: Math.max(0, g.boss.hp), max: g.boss.maxHp, phase: g.boss.phase }
+        : null;
+      const sector = Math.floor((g.wave - 1) / WAVES_PER_SECTOR) + 1;
+      const key = `${g.score}|${g.lives}|${g.wave}|${g.level}|${bossHud?.hp ?? -1}|${powers.map((p) => p.k + Math.round(p.pct * 20)).join(",")}`;
+      if (key !== lastHudKey) {
+        lastHudKey = key;
+        setHud({ score: g.score, lives: g.lives, wave: g.wave, sector, level: g.level, boss: bossHud, powers });
       }
 
       rafRef.current = requestAnimationFrame(step);
@@ -452,33 +886,61 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       canvas.removeEventListener("touchstart", onTouch);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
     };
   }, [started, resetGame, buildWave, commitBest]);
 
-  // Escape closes; hide the site cursor and lock scroll while the game is up.
+  /* ---- overlay lifecycle: ESC + scroll lock ---- */
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
-    document.documentElement.setAttribute("data-zgame", "open");
-    const prevOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.documentElement.removeAttribute("data-zgame");
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prev;
     };
   }, [onClose]);
 
-  const start = () => {
-    resetGame();
-    setStarted(true);
+  /* The site's custom cursor is only hidden while actually flying -- during
+     the menus it has to stay visible or the buttons can't be clicked. */
+  const playing = started && !gameOver;
+  useEffect(() => {
+    document.documentElement.setAttribute("data-zgame", playing ? "playing" : "menu");
+  }, [playing]);
+
+  const start = () => { resetGame(); setStarted(true); };
+  const retry = () => { resetGame(); setGameOver(false); setSubmitted(false); };
+
+  // Load the board whenever a menu is showing.
+  useEffect(() => {
+    if (!playing) loadScores().then(setScores);
+  }, [playing]);
+
+  const doSubmit = async () => {
+    const clean = name.trim().slice(0, 14) || "ANON";
+    setSubmitted(true);
+    try { window.localStorage.setItem("zwing-name", clean); } catch { /* ignore */ }
+    const list = await submitScore({ name: clean, score: hud.score, wave: hud.wave, at: Date.now() });
+    setScores(list);
   };
-  const restart = () => {
-    resetGame();
-    setGameOver(false);
-  };
+
+  // Enter activates the primary action on each menu, so the game is fully
+  // playable without ever needing to find the cursor.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && el.tagName === "INPUT") return; // the name field handles its own Enter
+      if (!started) { e.preventDefault(); start(); }
+      else if (gameOver) { e.preventDefault(); retry(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const MARK = ["I", "II", "III", "IV"][Math.min(3, hud.level - 1)];
 
   return (
     <div className="fixed inset-0 z-[9999] bg-[#05060a]">
@@ -486,17 +948,49 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
 
       {/* HUD */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-4 font-mono text-xs sm:text-sm">
-        <div className="space-y-1 text-accent">
+        <div className="space-y-1" style={{ color: SHIP_COLOR }}>
           <div>SCORE {String(hud.score).padStart(6, "0")}</div>
-          <div className="opacity-70">BEST {String(best).padStart(6, "0")}</div>
+          <div className="opacity-60">BEST {String(best).padStart(6, "0")}</div>
         </div>
         <div className="space-y-1 text-right text-accent">
-          <div>WAVE {hud.wave}</div>
-          <div aria-label={`${hud.lives} lives remaining`}>
+          <div>SECTOR {hud.sector} · WAVE {hud.wave}</div>
+          <div aria-label={`${hud.lives} lives remaining`} style={{ color: SHIP_COLOR }}>
             {"▲".repeat(Math.max(0, hud.lives))}
             <span className="opacity-25">{"▲".repeat(Math.max(0, 3 - hud.lives))}</span>
           </div>
         </div>
+      </div>
+
+      {/* boss health */}
+      {hud.boss && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 mx-auto w-[min(560px,80vw)] px-4">
+          <div className="mb-1 flex justify-between font-mono text-[10px] text-pink-300">
+            <span>MOTHERSHIP</span>
+            <span>PHASE {hud.boss.phase}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 transition-[width] duration-150"
+              style={{ width: `${(hud.boss.hp / hud.boss.max) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ship mark + active powerups */}
+      <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-3 font-mono text-xs">
+        <span style={{ color: SHIP_COLOR }}>MK.{MARK}</span>
+        {hud.powers.map((p) => (
+          <span key={p.k} className="flex items-center gap-1" style={{ color: POWER_META[p.k].color }}>
+            {POWER_META[p.k].label}
+            <span className="inline-block h-1 w-10 overflow-hidden rounded bg-white/15">
+              <span
+                className="block h-full rounded"
+                style={{ width: `${p.pct * 100}%`, background: POWER_META[p.k].color }}
+              />
+            </span>
+          </span>
+        ))}
       </div>
 
       <button
@@ -506,45 +1000,109 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         ESC ✕
       </button>
 
-      {/* Start screen */}
+      {/* start screen */}
       {!started && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#05060a]/85 px-6 text-center">
-          <h2
-            className="font-cyber text-4xl text-accent sm:text-6xl"
-            style={{ textShadow: "0 0 18px rgba(34,211,238,0.8)" }}
-          >
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 overflow-y-auto bg-[#05060a]/90 px-6 py-10 text-center">
+          <h2 className="font-cyber text-4xl sm:text-6xl" style={{ color: SHIP_COLOR, textShadow: `0 0 18px ${SHIP_COLOR}` }}>
             Z-WING
           </h2>
-          <p className="max-w-sm font-mono text-xs leading-relaxed text-gray-400 sm:text-sm">
-            Move with the <span className="text-accent">mouse</span> or{" "}
-            <span className="text-accent">WASD / arrows</span>.
+          <p className="max-w-md font-mono text-xs leading-relaxed text-gray-400 sm:text-sm">
+            Move with the <span style={{ color: SHIP_COLOR }}>mouse</span> or{" "}
+            <span style={{ color: SHIP_COLOR }}>WASD / arrows</span>. Guns are automatic.
             <br />
-            Guns are automatic. Clear the swarm.
+            Survive the swarm. Every 5th wave is a <span className="text-pink-400">sector boss</span>.
           </p>
+          <div className="grid max-w-md grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-[11px] text-gray-500">
+            <span><span style={{ color: POWER_META.rapid.color }}>R</span> rapid fire</span>
+            <span><span style={{ color: POWER_META.spread.color }}>S</span> spread shot</span>
+            <span><span style={{ color: POWER_META.shield.color }}>O</span> shield</span>
+            <span><span style={{ color: POWER_META.bomb.color }}>B</span> smart bomb</span>
+            <span className="col-span-2">
+              <span style={{ color: SHIP_COLOR }}>^</span> weapon upgrade — MK.I → MK.IV
+            </span>
+          </div>
           <button
+            autoFocus
             onClick={start}
-            className="rounded-md bg-accent px-8 py-3 font-mono font-bold text-dark transition-transform hover:scale-105"
+            className="rounded-md px-8 py-3 font-mono font-bold text-dark transition-transform hover:scale-105"
+            style={{ background: SHIP_COLOR }}
           >
             LAUNCH
           </button>
-          <p className="font-mono text-[11px] text-gray-600">ESC to exit</p>
+          <p className="font-mono text-[11px] text-gray-600">ENTER to launch · ESC to exit</p>
         </div>
       )}
 
-      {/* Game over */}
+      {/* game over */}
       {gameOver && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#05060a]/85 px-6 text-center">
-          <h2 className="font-cyber text-3xl text-accent sm:text-5xl">GAME OVER</h2>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-y-auto bg-[#05060a]/92 px-6 py-10 text-center">
+          <h2 className="font-cyber text-3xl sm:text-5xl" style={{ color: SHIP_COLOR }}>GAME OVER</h2>
           <div className="font-mono text-sm text-gray-300">
             <div>SCORE {hud.score}</div>
+            <div className="mt-1 text-gray-500">
+              REACHED SECTOR {hud.sector} · WAVE {hud.wave}
+            </div>
             <div className="mt-1 text-gray-500">
               {hud.score >= best ? "NEW PERSONAL BEST" : `BEST ${best}`}
             </div>
           </div>
+
+          {/* name entry */}
+          {!submitted ? (
+            <form
+              onSubmit={(e) => { e.preventDefault(); doSubmit(); }}
+              className="flex flex-col items-center gap-2"
+            >
+              <label htmlFor="zwing-name" className="font-mono text-[11px] uppercase tracking-widest text-gray-500">
+                enter your name for the leaderboard
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="zwing-name"
+                  autoFocus
+                  value={name}
+                  maxLength={14}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="ANON"
+                  className="w-40 rounded-md border border-accent/40 bg-black/50 px-3 py-2 text-center font-mono text-sm uppercase tracking-widest text-accent outline-none focus:border-accent"
+                />
+                <button
+                  type="submit"
+                  className="rounded-md px-4 py-2 font-mono text-sm font-bold text-dark transition-transform hover:scale-105"
+                  style={{ background: SHIP_COLOR }}
+                >
+                  SAVE
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="font-mono text-[11px] uppercase tracking-widest text-emerald-400">score saved</p>
+          )}
+
+          {/* leaderboard */}
+          {scores.length > 0 && (
+            <div className="w-full max-w-xs font-mono text-xs">
+              <div className="mb-1 flex justify-between text-[10px] uppercase tracking-widest text-gray-600">
+                <span>leaderboard</span>
+                <span>{LEADERBOARD_ENDPOINT ? "global" : "this device"}</span>
+              </div>
+              <ol className="divide-y divide-white/5 rounded-md border border-white/10">
+                {scores.slice(0, LB_MAX).map((s, i) => (
+                  <li key={`${s.at}-${i}`} className="flex items-center justify-between px-3 py-1.5">
+                    <span className="text-gray-500">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-1 px-3 text-left text-gray-300">{s.name}</span>
+                    <span style={{ color: SHIP_COLOR }}>{s.score}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
-              onClick={restart}
-              className="rounded-md bg-accent px-6 py-2.5 font-mono font-bold text-dark transition-transform hover:scale-105"
+              onClick={retry}
+              className="rounded-md px-6 py-2.5 font-mono font-bold text-dark transition-transform hover:scale-105"
+              style={{ background: SHIP_COLOR }}
             >
               RETRY
             </button>
@@ -555,6 +1113,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
               EXIT
             </button>
           </div>
+          <p className="font-mono text-[11px] text-gray-600">ENTER to retry · ESC to exit</p>
         </div>
       )}
     </div>
