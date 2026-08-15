@@ -24,6 +24,11 @@ const StatusBar = () => {
 
   const currentPage = pathname === '/' ? '/home' : pathname;
 
+  // Baked in at build time by next.config.mjs. Hovering shows the exact build
+  // timestamp, which changes on every deploy even when the version doesn't.
+  const version = process.env.NEXT_PUBLIC_APP_VERSION;
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
+
   return (
     <footer className="w-full h-7 bg-light dark:bg-trueBlack/80 backdrop-blur-sm text-accentDark dark:text-cyan-300 px-4 flex justify-between items-center text-xs italic lowercase border-t border-black/10 dark:border-white/10">
       {/* Left Section */}
@@ -38,6 +43,14 @@ const StatusBar = () => {
       
       {/* Right Section */}
       <div className="flex items-center space-x-2">
+        {version && (
+          <span
+            className="opacity-70"
+            title={buildTime ? `built ${buildTime}` : undefined}
+          >
+            v{version}
+          </span>
+        )}
         <span>{day}</span>
         <span>{time}</span>
       </div>
