@@ -8,8 +8,8 @@ export type Project = {
   tags: string[];
   coverImage: string;
   longDescription: string;
-  githubUrl: string;
-  liveUrl?: string; // Optional live URL
+  githubUrl?: string; // Optional — omit if there's no real repo to link to
+  liveUrl?: string; // Optional — omit if there's no real demo to link to
 };
 
 const projectsData: Project[] = [
@@ -22,8 +22,6 @@ const projectsData: Project[] = [
     tags: ["Next.js", "TypeScript", "Stripe", "Tailwind CSS"],
     coverImage: "https://picsum.photos/seed/project1/1200/800",
     longDescription: "This was a comprehensive project aimed at building a feature-rich e-commerce platform...",
-    githubUrl: "https://github.com",
-    liveUrl: "#",
   },
   {
     id: "project-2",
@@ -34,7 +32,6 @@ const projectsData: Project[] = [
     tags: ["React", "Node.js", "OpenAI", "Socket.io"],
     coverImage: "https://picsum.photos/seed/project2/1200/800",
     longDescription: "This project leverages the power of OpenAI's GPT models to create a smart, conversational AI...",
-    githubUrl: "https://github.com",
   },
   {
     id: "project-3",
@@ -45,8 +42,6 @@ const projectsData: Project[] = [
     tags: ["React", "D3.js", "SASS"],
     coverImage: "https://picsum.photos/seed/project3/1200/800",
     longDescription: "A powerful data visualization tool that transforms raw sales data into insightful charts and graphs...",
-    githubUrl: "https://github.com",
-    liveUrl: "#",
   },
   {
     id: "project-4",
@@ -57,7 +52,6 @@ const projectsData: Project[] = [
     tags: ["React Native", "Firebase", "GraphQL"],
     coverImage: "https://picsum.photos/seed/project4/1200/800",
     longDescription: "This mobile application, built with React Native, allows users to track their fitness goals...",
-    githubUrl: "https://github.com",
   },
   {
     id: "project-5",
@@ -68,8 +62,6 @@ const projectsData: Project[] = [
     tags: ["Node.js", "Express", "React", "AWS S3"],
     coverImage: "https://picsum.photos/seed/project5/1200/800",
     longDescription: "This application provides a robust backend for file uploads, downloads, and management, using AWS S3 for scalable object storage...",
-    githubUrl: "https://github.com",
-    liveUrl: "#",
   },
   {
     id: "project-6",
@@ -80,8 +72,6 @@ const projectsData: Project[] = [
     tags: ["Vue.js", "WebSocket", "Node.js", "Financial APIs"],
     coverImage: "https://picsum.photos/seed/project6/1200/800",
     longDescription: "A real-time financial dashboard that connects to stock market APIs via WebSockets to provide live price updates...",
-    githubUrl: "https://github.com",
-    liveUrl: "#",
   },
   {
     id: "project-7",
@@ -92,7 +82,6 @@ const projectsData: Project[] = [
     tags: ["Python", "Flask", "NLTK", "Scikit-learn"],
     coverImage: "https://picsum.photos/seed/project7/1200/800",
     longDescription: "This project is a RESTful API built with Python and Flask that performs sentiment analysis...",
-    githubUrl: "https://github.com",
   },
   {
     id: "project-8",
@@ -103,8 +92,6 @@ const projectsData: Project[] = [
     tags: ["Next.js", "GraphQL", "Tailwind CSS", "Strapi"],
     coverImage: "https://picsum.photos/seed/project8/1200/800",
     longDescription: "A modern blogging platform built with Next.js for a fast, static frontend and Strapi as a headless CMS...",
-    githubUrl: "https://github.com",
-    liveUrl: "#",
   }
 ];
 

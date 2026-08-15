@@ -3,7 +3,7 @@
 
 import { motion } from "framer-motion";
 import NeonText from "@/components/NeonText";
-import { FaGithub, FaLinkedin, FaInstagram, FaEnvelope, FaFileDownload, FaSpotify, FaFacebook } from "react-icons/fa";
+import { FaGithub, FaInstagram, FaEnvelope, FaFileDownload, FaSpotify } from "react-icons/fa";
 import { useState, useEffect, useMemo } from "react";
 import { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
@@ -26,14 +26,14 @@ const downloadResume = () => {
   document.body.removeChild(link);
 };
 
+// NOTE: Spotify URL is a best guess (zak.iy) — Spotify profile links are usually a random ID,
+// not a vanity handle, so please verify/replace this one.
 const socialLinks = [
   { name: "GitHub", icon: <FaGithub />, url: "https://github.com/zakiyriyaz1", id: "github" },
-  { name: "LinkedIn", icon: <FaLinkedin />, url: "https://www.linkedin.com/in", id: "linkedin" },
-  { name: "Instagram", icon: <FaInstagram />, url: "https://www.instagram.com", id: "instagram" },
-  { name: "Gmail", icon: <FaEnvelope />, url: "mailto:your-email@example.com", id: "gmail" },
+  { name: "Instagram", icon: <FaInstagram />, url: "https://www.instagram.com/zak.iy", id: "instagram" },
+  { name: "Gmail", icon: <FaEnvelope />, url: "mailto:zakiyriyaz1@gmail.com", id: "gmail" },
   { name: "Resume", icon: <FaFileDownload />, isDownload: true, id: "resume" },
-  { name: "Spotify", icon: <FaSpotify />, url: "#", id: "spotify" },
-  { name: "Facebook", icon: <FaFacebook />, url: "#", id: "facebook" },
+  { name: "Spotify", icon: <FaSpotify />, url: "https://open.spotify.com/user/zak.iy", id: "spotify" },
 ];
 
 interface FormData {
@@ -50,7 +50,7 @@ interface FormStatus {
 
 // --- Mobile Socials Component (3x2 Grid Layout) ---
 const MobileSocials = () => {
-  const mobileSocialLinks = socialLinks.filter(link => link.id !== 'facebook');
+  const mobileSocialLinks = socialLinks;
 
   return (
     <motion.div 
@@ -74,12 +74,12 @@ const MobileSocials = () => {
             href={link.isDownload ? undefined : link.url}
             target={link.isDownload ? undefined : "_blank"}
             rel={link.isDownload ? undefined : "noopener noreferrer"}
-            className="w-14 h-14 bg-transparent border-2 border-accent/40 rounded-full flex items-center justify-center text-gray-300 hover:text-accent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
+            className="w-14 h-14 bg-transparent border-2 border-accent/40 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-accent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
             aria-label={link.name}
           >
             {React.cloneElement(link.icon, { size: 24 })}
           </a>
-          <span className="mt-1.5 text-xs text-gray-400 group-hover:text-accent transition-colors duration-300 text-center">
+          <span className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 group-hover:text-accent transition-colors duration-300 text-center">
             {link.name}
           </span>
         </motion.div>
@@ -104,7 +104,7 @@ export default function ContactPage() {
   const particlesOptions: ISourceOptions = useMemo(() => ({
     fpsLimit: 120,
     interactivity: { events: { onHover: { enable: true, mode: "repulse" } }, modes: { repulse: { distance: 80, duration: 0.4 } } },
-    particles: { color: { value: "#22d3ee" }, links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.15, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: true, speed: 1, straight: false }, number: { density: { enable: true }, value: 200 }, opacity: { value: 0.3 }, shape: { type: "circle" }, size: { value: { min: 1, max: 2 } } },
+    particles: { color: { value: "#22d3ee" }, links: { color: "#ffffff", distance: 150, enable: true, opacity: 0.15, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: true, speed: 1, straight: false }, number: { density: { enable: true }, value: 100 }, opacity: { value: 0.3 }, shape: { type: "circle" }, size: { value: { min: 1, max: 2 } } },
     detectRetina: true,
   }), []);
 
@@ -164,7 +164,7 @@ export default function ContactPage() {
       <div className="relative z-10">
         <div className="mb-8 text-center md:text-left">
           <NeonText>Get In Touch</NeonText>
-          <p className="text-gray-400 mt-4 text-sm md:text-base">
+          <p className="text-gray-600 dark:text-gray-400 mt-4 text-sm md:text-base">
             Have a project in mind or just want to say hello? 
             <br />
             Feel free to reach out.
@@ -185,11 +185,11 @@ export default function ContactPage() {
               <form onSubmit={handleSubmit} className="space-y-3">
                  {status.type === 'loading' && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-3">
-                        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                             <span>Sending message...</span>
                             <span>{Math.round(status.progress || 0)}%</span>
                         </div>
-                        <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-full bg-gray-300 dark:bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                             <motion.div
                                 className="h-full bg-gradient-to-r from-accent via-accent/80 to-accent rounded-full relative"
                                 initial={{ width: '0%' }}
@@ -206,16 +206,16 @@ export default function ContactPage() {
                     <motion.div className={`p-2.5 rounded-md text-xs font-medium ${status.type === 'success' ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>{status.message}</motion.div>
                  )}
                  <div>
-                    <label htmlFor="name" className="block text-xs font-medium text-gray-300 mb-1">Name *</label>
-                    <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-gray-100 placeholder-gray-500 text-sm" placeholder="Your full name" />
+                    <label htmlFor="name" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Name *</label>
+                    <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-gray-100 dark:bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-dark dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm" placeholder="Your full name" />
                  </div>
                  <div>
-                    <label htmlFor="email" className="block text-xs font-medium text-gray-300 mb-1">Email *</label>
-                    <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-gray-100 placeholder-gray-500 text-sm" placeholder="your.email@example.com" />
+                    <label htmlFor="email" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Email *</label>
+                    <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-gray-100 dark:bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-dark dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm" placeholder="your.email@example.com" />
                  </div>
                  <div>
-                    <label htmlFor="message" className="block text-xs font-medium text-gray-300 mb-1">Message *</label>
-                    <textarea id="message" name="message" value={formData.message} onChange={handleInputChange} rows={5} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-gray-100 placeholder-gray-500 resize-vertical min-h-[120px] text-sm" placeholder="Tell me about your project..."></textarea>
+                    <label htmlFor="message" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Message *</label>
+                    <textarea id="message" name="message" value={formData.message} onChange={handleInputChange} rows={5} required disabled={status.type === 'loading'} className="w-full p-2.5 bg-gray-100 dark:bg-[#141921] rounded-md border border-transparent focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all duration-200 disabled:opacity-50 text-dark dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-vertical min-h-[120px] text-sm" placeholder="Tell me about your project..."></textarea>
                  </div>
                  <motion.button type="submit" disabled={status.type === 'loading'} className="w-full px-4 py-2.5 font-semibold rounded-md bg-accent text-dark hover:bg-accent/80 transition-all duration-300 disabled:opacity-50 text-sm flex items-center justify-center" whileHover={status.type !== 'loading' ? { scale: 1.02 } : {}} whileTap={status.type !== 'loading' ? { scale: 0.98 } : {}}>
                     {status.type === 'loading' ? (
@@ -321,8 +321,8 @@ export default function ContactPage() {
                   >
                     <motion.div className="absolute inset-0 bg-accent/30 rounded-full blur-lg" initial={{ scale: 0, opacity: 0 }} whileHover={{ scale: 2.5, opacity: 1, transition: { duration: 0.3 } }} />
                     <div className="relative w-[80px] h-[80px] bg-transparent border-2 border-accent/40 rounded-full flex flex-col items-center justify-center group-hover:border-accent group-hover:shadow-cyan-glow transition-all duration-300 backdrop-blur-sm">
-                      <div className="text-gray-300 group-hover:text-accent transition-colors duration-300 mb-0">{React.cloneElement(link.icon, { size: 30 })}</div>
-                      <span className="text-xs font-medium text-gray-400 group-hover:text-accent transition-colors duration-300">{link.name}</span>
+                      <div className="text-gray-600 dark:text-gray-300 group-hover:text-accent transition-colors duration-300 mb-0">{React.cloneElement(link.icon, { size: 30 })}</div>
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-accent transition-colors duration-300">{link.name}</span>
                     </div>
                     <motion.div className="absolute inset-0 bg-accent/5 rounded-full border border-accent/20" initial={{ scale: 1, opacity: 0 }} animate={{ scale: [1, 1.3, 1], opacity: [0, 0.3, 0] }} transition={{ duration: 4, repeat: Infinity, delay: index * 0.6, ease: "easeOut" }} />
                     <motion.div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-accent/95 text-dark px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap pointer-events-none shadow-lg" initial={{ opacity: 0, y: 10, scale: 0.8 }} whileHover={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } }}>

@@ -3,7 +3,7 @@
 
 A performance-focused developer portfolio built with Next.js 14, TypeScript, and Framer Motion.
 
-**[Live Demo](https://your-live-demo-link.com)**
+**[Live Demo](https://www.zakiyriyaz.com)**
 
 This repository contains the source code for a personal developer portfolio designed to showcase projects with a clean, cyberpunk-inspired aesthetic. The primary goals were to achieve a fast, responsive, and interactive user experience while maintaining a well-structured and scalable codebase.
 
@@ -86,21 +86,23 @@ This project is under active development. The roadmap below outlines completed m
   * **Full Responsiveness:** Implemented the adaptive sidebar and responsive project grid.
   * **Performance Optimization:** Lazy-loaded the particle background and optimized all images.
   * **Bug Fixes:** Resolved critical hydration errors and component conflicts.
+  * **Theming:** Reworked the light theme so every surface (header, sidebar, cards, form fields) actually responds to the dark/light toggle instead of staying hardcoded to dark hex values.
+  * **Page Transitions:** Wired up the `PageTransition` component in the root layout so route changes animate as originally designed.
 
 #### ⏳ In Progress
 
-  * **Contact Form:** Implementing a serverless API route using Resend to handle form submissions.
+  * **Contact Form:** Form submissions are handled client-side via Formspree.
   * **SEO & Metadata:** Adding unique, descriptive metadata to all pages for improved search engine ranking and social sharing.
   * **Code Quality:** Centralizing TypeScript types and creating a project favicon.
 
 #### 🎯 Future Goals
 
   * **UI/UX:**
-      * [ ] Finalize a polished color scheme for the light theme.
       * [ ] Design a custom 404 "Page Not Found" experience.
       * [ ] Implement a detailed modal or page view for project case studies.
   * **Content:**
       * [ ] Add a blog/writing section powered by MDX.
+      * [ ] Replace placeholder project cover images and repo/demo links with real ones.
   * **Technical Debt & a11y:**
       * [ ] Conduct a full accessibility audit to ensure WCAG compliance.
       * [ ] Refactor CSS variables for improved theme management.

@@ -22,11 +22,11 @@ const Header = () => {
   };
 
   // Prevents hydration mismatch for the theme toggle icon
-  if (!mounted) return <div className="h-[59px] w-full bg-[#020403]"></div>;
+  if (!mounted) return <div className="h-[59px] w-full bg-light dark:bg-[#020403]"></div>;
 
   return (
     <motion.header
-      className="relative z-20 w-full bg-[#020403] text-light p-3 px-6 flex justify-between items-center border-b-2 border-accent"
+      className="relative z-20 w-full bg-light dark:bg-[#020403] text-dark dark:text-light p-3 px-6 flex justify-between items-center border-b-2 border-accent"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 120, damping: 14, delay: 0.2 }}
@@ -47,7 +47,7 @@ const Header = () => {
       <div className="flex items-center space-x-5">
         <motion.button
           onClick={downloadResume}
-          className="text-gray-400 hover:text-accent transition-colors duration-300 relative group flex items-center"
+          className="text-gray-500 dark:text-gray-400 hover:text-accent transition-colors duration-300 relative group flex items-center"
           whileHover={{ scale: 1.2, y: -2 }}
           whileTap={{ scale: 0.9 }}
           aria-label="Download Resume"
@@ -61,7 +61,7 @@ const Header = () => {
         </motion.button>
         <motion.button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="p-1.5 rounded-full bg-gray-900 text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
+          className="p-1.5 rounded-full bg-gray-200 dark:bg-gray-900 text-dark dark:text-light border-2 border-transparent hover:border-accent hover:shadow-cyan-glow transition-all duration-300"
           whileHover={{ scale: 1.1, rotate: 15 }}
           whileTap={{ scale: 0.9 }}
           aria-label="Toggle theme"

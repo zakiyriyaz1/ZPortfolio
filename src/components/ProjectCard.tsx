@@ -12,7 +12,7 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, onClick }) => {
-  const { id, title, description, tags, coverImage, longDescription, githubUrl } = project;
+  const { id, title, description, tags, coverImage, longDescription, githubUrl, liveUrl } = project;
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -62,15 +62,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
         boxShadow: "0 0 30px rgba(34, 211, 238, 0.8)" 
       } : {}}
       transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-4xl mx-auto h-auto overflow-hidden cursor-default' : 'bg-[#141921] h-auto md:h-[180px] cursor-pointer'}`}
+      className={`relative rounded-2xl flex flex-col ${isSelected ? 'w-full max-w-4xl mx-auto h-auto overflow-hidden cursor-default' : 'bg-gray-100 dark:bg-[#141921] h-auto md:h-[180px] cursor-pointer'}`}
     >
       {!isSelected ? (
         // Small Card View
         <div className="p-6 sm:p-8 flex flex-col flex-grow h-full" style={{ transform: "translateZ(30px)" }}>
-          <h3 className="text-lg sm:text-xl font-bold text-light mb-2 flex-shrink-0">{title}</h3>
-          
+          <h3 className="text-lg sm:text-xl font-bold text-dark dark:text-light mb-2 flex-shrink-0">{title}</h3>
+
           {/* Improved description with consistent 2-line display */}
-          <div className="text-[#707886] mb-4 sm:mb-6 flex-grow text-sm sm:text-base">
+          <div className="text-gray-500 dark:text-[#707886] mb-4 sm:mb-6 flex-grow text-sm sm:text-base">
             <p className="line-clamp-2 leading-tight" style={{ 
               height: '2.5rem', 
               overflow: 'hidden',
@@ -111,7 +111,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
           </div>
           
           {/* Content Section with Reduced Text Area Height */}
-          <div className="flex-1 bg-[#141921] flex flex-col min-h-0">
+          <div className="flex-1 bg-gray-100 dark:bg-[#141921] flex flex-col min-h-0">
             <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex-shrink-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-accent mb-3" style={{ textShadow: '0 0 8px rgba(34, 211, 238, 0.8)' }}>
                 {title}
@@ -128,7 +128,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
             {/* Reduced Height Scrollable Text Area */}
             <div className="flex-1 px-4 sm:px-6 pb-2 overflow-hidden flex flex-col min-h-0" style={{ minHeight: '200px' }}> {/* Reduced from 300px */}
               <div className="flex-1 overflow-y-auto pr-2 min-h-0 py-4">
-                <div className="text-gray-300 text-base sm:text-lg leading-relaxed whitespace-pre-wrap min-h-full">
+                <div className="text-gray-700 dark:text-gray-300 text-base sm:text-lg leading-relaxed whitespace-pre-wrap min-h-full">
                   {longDescription}
                   {/* Add extra spacing for better scrolling experience */}
                   <div className="h-8"></div>
@@ -137,18 +137,32 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, isSelected = false, 
             </div>
             
             {/* Enhanced GitHub Button Section */}
-            <div className="px-4 sm:px-6 py-4 bg-gradient-to-t from-[#0f1419] to-[#141921] border-t border-gray-700/50 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <a 
-                  href={githubUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-lg bg-accent text-dark hover:bg-accent/80 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <FaGithub className="text-lg" />
-                  View on GitHub
-                </a>
-                
+            <div className="px-4 sm:px-6 py-4 bg-gradient-to-t from-gray-200 to-gray-100 dark:from-[#0f1419] dark:to-[#141921] border-t border-gray-300 dark:border-gray-700/50 flex-shrink-0">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  {githubUrl && (
+                    <a
+                      href={githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-lg bg-accent text-dark hover:bg-accent/80 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <FaGithub className="text-lg" />
+                      View on GitHub
+                    </a>
+                  )}
+                  {liveUrl && (
+                    <a
+                      href={liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-lg border-2 border-accent text-accent hover:bg-accent/10 transform hover:scale-105 transition-all duration-200"
+                    >
+                      Live Demo
+                    </a>
+                  )}
+                </div>
+
                 {/* Enhanced Visual Element */}
                 <div className="text-xs text-gray-500 hidden sm:block">
                   Click outside to close
