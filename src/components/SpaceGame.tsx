@@ -27,9 +27,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SHIP_COLOR = "#FFEC00";      // matches CustomCursor
 const ACCENT = "#22d3ee";          // site brand cyan
 const WAVES_PER_SECTOR = 5;        // every 5th wave is a boss
-const START_LIVES = 4;
-const DROP_CHANCE = 0.18;          // chance a regular kill drops a pickup
-const UPGRADE_EVERY = 2;           // guaranteed weapon upgrade every N waves cleared
+const START_LIVES = 3;
+const MAX_LIVES = 6;
+// Pickups are deliberately scarce. Firepower should feel earned over a run
+// rather than showered on the player -- generous drops made the game trivial
+// and visually chaotic.
+const DROP_CHANCE = 0.05;          // chance a regular kill drops a pickup
+const UPGRADE_EVERY = 4;           // guaranteed weapon upgrade every N waves cleared
 
 const ENEMY_TYPES = {
   grunt:   { hp: 1, score: 100, color: "#c084fc", r: 13, fire: 0.0010, dive: 0.0007 },
@@ -40,15 +44,24 @@ const ENEMY_TYPES = {
 } as const;
 
 type EnemyKind = keyof typeof ENEMY_TYPES;
-type PowerKind = "rapid" | "spread" | "shield" | "bomb" | "upgrade";
+type PowerKind = "rapid" | "spread" | "shield" | "bomb" | "upgrade" | "life";
 
+// Timed powerups are short bursts, not a state you live in.
 const POWER_META: Record<PowerKind, { label: string; color: string; ms: number }> = {
-  rapid:   { label: "R", color: "#22d3ee", ms: 8000 },
-  spread:  { label: "S", color: "#a78bfa", ms: 8000 },
-  shield:  { label: "O", color: "#34d399", ms: 9000 },
+  rapid:   { label: "R", color: "#22d3ee", ms: 6000 },
+  spread:  { label: "S", color: "#a78bfa", ms: 6000 },
+  shield:  { label: "O", color: "#34d399", ms: 7000 },
   bomb:    { label: "B", color: "#f87171", ms: 0 },
   upgrade: { label: "^", color: SHIP_COLOR, ms: 0 },
+  life:    { label: "♥", color: "#fb7185", ms: 0 },
 };
+
+/** Boss silhouettes, one per sector (cycling). Each sector looks distinct. */
+const BOSS_VARIANTS = [
+  { name: "DREADNOUGHT", color: "#c084fc" },
+  { name: "HIVE CARRIER", color: "#38bdf8" },
+  { name: "WARDEN", color: "#fb7185" },
+] as const;
 
 /* ----------------------------- types ----------------------------------- */
 
@@ -78,6 +91,7 @@ type Boss = {
   fireT: number;
   flash: number;
   entering: boolean;
+  variant: number;   // index into BOSS_VARIANTS
 };
 
 type Game = {
@@ -182,7 +196,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
   const [hud, setHud] = useState({
     score: 0, lives: 3, wave: 1, sector: 1, level: 1,
-    boss: null as { hp: number; max: number; phase: number } | null,
+    boss: null as { hp: number; max: number; phase: number; name: string } | null,
     powers: [] as { k: PowerKind; pct: number }[],
   });
 
@@ -209,24 +223,28 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
     // Every 5th wave is a boss instead of a formation.
     if (wave % WAVES_PER_SECTOR === 0) {
       const sector = wave / WAVES_PER_SECTOR;
-      const maxHp = 55 + sector * 40;
+      const variant = (sector - 1) % BOSS_VARIANTS.length;
+      // Substantially tankier than before -- bosses were melting in seconds.
+      const maxHp = 130 + (sector - 1) * 95;
       g.boss = {
         x: g.w / 2, y: -120, hp: maxHp, maxHp,
-        phase: 1, t: 0, dir: 1, fireT: 0, flash: 0, entering: true,
+        phase: 1, t: 0, dir: 1, fireT: 0, flash: 0, entering: true, variant,
       };
       g.enemies = [];
-      g.banner = { text: `SECTOR ${sector} BOSS`, sub: "destroy the mothership", t: 150 };
+      g.banner = { text: BOSS_VARIANTS[variant].name, sub: `sector ${sector} · destroy it`, t: 170 };
       return;
     }
 
-    // Difficulty ramp: which archetypes are in the mix, and how many.
+    // Difficulty ramp. Archetypes are introduced one at a time and the
+    // formation grows slowly, so each wave reads as its own step up rather
+    // than blurring into the next.
     const pool: EnemyKind[] = ["grunt"];
-    if (wave >= 3) pool.push("soldier");
-    if (wave >= 4) pool.push("diver");
-    if (wave >= 6) pool.push("weaver");
+    if (wave >= 4) pool.push("soldier");
+    if (wave >= 7) pool.push("diver");
+    if (wave >= 11) pool.push("weaver");
 
-    const cols = Math.min(9, 5 + Math.floor(wave / 2));
-    const rows = Math.min(5, 2 + Math.floor(wave / 3));
+    const cols = Math.min(8, 4 + Math.floor(wave / 4));
+    const rows = Math.min(5, 2 + Math.floor(wave / 5));
     const spacingX = Math.min(86, (g.w - 120) / cols);
     const startX = (g.w - (cols - 1) * spacingX) / 2;
 
@@ -235,15 +253,15 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       for (let c = 0; c < cols; c++) {
         // Front rows get the tougher archetypes.
         let kind: EnemyKind = pool[Math.min(pool.length - 1, Math.floor(rand(0, pool.length)))];
-        if (r === 0 && wave >= 3) kind = "soldier";
-        if (wave >= 8 && r === 0 && c % 4 === 0) kind = "tank";
+        if (r === 0 && wave >= 4) kind = "soldier";
+        if (wave >= 12 && r === 0 && c % 4 === 0) kind = "tank";
 
         const spec = ENEMY_TYPES[kind];
         const x = startX + c * spacingX;
         const y = 96 + r * 60;
         enemies.push({
           x, y, homeX: x, homeY: y, kind,
-          hp: spec.hp + Math.floor(wave / 7),
+          hp: spec.hp + Math.floor(wave / 10),
           alive: true, diving: false,
           t: Math.random() * Math.PI * 2, diveVX: 0, flash: 0,
         });
@@ -251,7 +269,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
     }
     g.enemies = enemies;
     g.boss = null;
-    g.banner = { text: `WAVE ${wave}`, sub: "", t: 90 };
+    g.banner = { text: `WAVE ${wave}`, sub: `${enemies.length} hostiles`, t: 120 };
   }, []);
 
   const resetGame = useCallback(() => {
@@ -289,17 +307,30 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Size the backing store to the canvas's real laid-out size.
+    //
+    // This has to be re-checked continuously, not just once on mount: if the
+    // canvas is measured before layout has settled it reports a near-zero
+    // height, and the whole game then runs inside a sliver -- ship off-screen,
+    // enemies spawning below the drawable area, nothing hittable. Reconciling
+    // every frame is a couple of integer comparisons and makes that
+    // unrecoverable state impossible.
     const fit = () => {
+      const cw = canvas.clientWidth, ch = canvas.clientHeight;
+      if (cw < 2 || ch < 2) return false;                 // not laid out yet
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(canvas.clientWidth * dpr);
-      canvas.height = Math.floor(canvas.clientHeight * dpr);
+      canvas.width = Math.floor(cw * dpr);
+      canvas.height = Math.floor(ch * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const g = gameRef.current;
-      if (g) { g.w = canvas.clientWidth; g.h = canvas.clientHeight; }
+      if (g) { g.w = cw; g.h = ch; }
+      return true;
     };
     fit();
     if (!gameRef.current) resetGame();
     window.addEventListener("resize", fit);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => fit()) : null;
+    ro?.observe(canvas);
 
     /* ---- input ---- */
     const onMove = (e: MouseEvent) => {
@@ -344,22 +375,31 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       }
     };
 
+    // Weighting: the common drops are the short timed buffs. Weapon marks come
+    // almost entirely from the guaranteed sources (boss kills and the wave
+    // cadence), and hearts are the only way to gain a life at all.
     const dropPickup = (g: Game, x: number, y: number, forceUpgrade = false) => {
       const roll = Math.random();
       let kind: PowerKind;
       if (forceUpgrade) kind = "upgrade";
-      else if (roll < 0.3) kind = "rapid";
-      else if (roll < 0.55) kind = "spread";
-      else if (roll < 0.8) kind = "shield";
-      else if (roll < 0.93) kind = "bomb";
-      else kind = "upgrade";
-      g.pickups.push({ x, y, vy: 1.5, kind, t: 0 });
+      else if (roll < 0.34) kind = "rapid";
+      else if (roll < 0.64) kind = "spread";
+      else if (roll < 0.88) kind = "shield";
+      else if (roll < 0.96) kind = "bomb";
+      else kind = "life";
+      g.pickups.push({ x, y, vy: 1.4, kind, t: 0 });
     };
 
     const grantPower = (g: Game, kind: PowerKind) => {
       if (kind === "upgrade") {
         g.level = Math.min(4, g.level + 1);
         g.banner = { text: `MK.${["I", "II", "III", "IV"][g.level - 1]}`, sub: "weapons upgraded", t: 90 };
+        return;
+      }
+      if (kind === "life") {
+        // The only source of extra lives in the whole game.
+        g.lives = Math.min(MAX_LIVES, g.lives + 1);
+        g.banner = { text: "+1 LIFE", sub: "", t: 80 };
         return;
       }
       if (kind === "bomb") {
@@ -513,7 +553,10 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawBoss = (b: Boss) => {
-      const phaseCol = b.phase === 3 ? "#f87171" : b.phase === 2 ? "#f472b6" : "#c084fc";
+      // Each sector's boss has its own silhouette and palette; the phase only
+      // shifts the hue so damage is still readable at a glance.
+      const base = BOSS_VARIANTS[b.variant].color;
+      const phaseCol = b.phase === 3 ? "#f87171" : b.phase === 2 ? "#f472b6" : base;
       const col = b.flash > 0 ? "#ffffff" : phaseCol;
       ctx.save();
       ctx.translate(b.x, b.y);
@@ -521,9 +564,23 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       ctx.shadowBlur = 26;
       ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.moveTo(0, 46); ctx.lineTo(-40, 22); ctx.lineTo(-72, 6);
-      ctx.lineTo(-52, -26); ctx.lineTo(0, -40); ctx.lineTo(52, -26);
-      ctx.lineTo(72, 6); ctx.lineTo(40, 22);
+      if (b.variant === 1) {
+        // HIVE CARRIER -- broad hexagonal slab with notched shoulders
+        ctx.moveTo(-30, -42); ctx.lineTo(30, -42); ctx.lineTo(78, -8);
+        ctx.lineTo(58, 30); ctx.lineTo(22, 44); ctx.lineTo(-22, 44);
+        ctx.lineTo(-58, 30); ctx.lineTo(-78, -8);
+      } else if (b.variant === 2) {
+        // WARDEN -- tall diamond with swept arms
+        ctx.moveTo(0, -52); ctx.lineTo(34, -12); ctx.lineTo(80, 4);
+        ctx.lineTo(44, 16); ctx.lineTo(20, 50); ctx.lineTo(0, 30);
+        ctx.lineTo(-20, 50); ctx.lineTo(-44, 16); ctx.lineTo(-80, 4);
+        ctx.lineTo(-34, -12);
+      } else {
+        // DREADNOUGHT -- wide angular capital ship
+        ctx.moveTo(0, 46); ctx.lineTo(-40, 22); ctx.lineTo(-72, 6);
+        ctx.lineTo(-52, -26); ctx.lineTo(0, -40); ctx.lineTo(52, -26);
+        ctx.lineTo(72, 6); ctx.lineTo(40, 22);
+      }
       ctx.closePath();
       ctx.fill();
       // core
@@ -541,7 +598,13 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
 
     const step = () => {
       const g = gameRef.current;
-      if (!g) return;
+      if (!g) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
+      // Self-heal if the canvas's real size ever drifts from what the game
+      // thinks it is (see fit()). Cheap, and prevents an unplayable sliver.
+      if (canvas.clientWidth !== g.w || canvas.clientHeight !== g.h) fit();
       const { w, h } = g;
       const t = now();
 
@@ -684,8 +747,12 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
           // Guaranteed reward for clearing: a weapon upgrade on the cadence,
           // otherwise a random powerup. Keeps the player's firepower scaling
           // with the difficulty instead of relying purely on drop luck.
+          // Only the upgrade cadence is guaranteed -- clearing a wave no longer
+          // showers a pickup every single time. It's granted outright rather
+          // than dropped: a pickup spawned at the top takes ~7s to fall and was
+          // frequently missed, which meant arriving at a boss under-gunned.
           const clearedCount = g.wave - 1;
-          dropPickup(g, g.w / 2, 60, clearedCount % UPGRADE_EVERY === 0);
+          if (clearedCount % UPGRADE_EVERY === 0 && g.level < 4) grantPower(g, "upgrade");
           g.invuln = Math.max(g.invuln, 70); // breathing room as the wave lands
           buildWave(g, g.wave);
         }
@@ -726,7 +793,13 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         g.bullets = g.bullets.filter((p) => p.y > -30);
 
         /* ---- pickups ---- */
-        for (const p of g.pickups) { p.y += p.vy; p.t += 1; }
+        // Gentle magnetism once a drop is near the ship, so the rare pickups
+        // don't sail past just out of reach.
+        for (const p of g.pickups) {
+          p.y += p.vy; p.t += 1;
+          const dx = g.ship.x - p.x, dy = g.ship.y - p.y;
+          if (Math.abs(dx) < 190 && Math.abs(dy) < 190) p.x += Math.sign(dx) * Math.min(2.2, Math.abs(dx) * 0.05);
+        }
         g.pickups = g.pickups.filter((p) => {
           if (p.y > h + 30) return false;
           if (Math.abs(p.x - g.ship.x) < 30 && Math.abs(p.y - g.ship.y) < 30) {
@@ -864,7 +937,10 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
         .filter((k) => g.timers[k] && g.timers[k] > t)
         .map((k) => ({ k, pct: Math.max(0, (g.timers[k] - t) / POWER_META[k].ms) }));
       const bossHud = g.boss && !g.boss.entering
-        ? { hp: Math.max(0, g.boss.hp), max: g.boss.maxHp, phase: g.boss.phase }
+        ? {
+            hp: Math.max(0, g.boss.hp), max: g.boss.maxHp, phase: g.boss.phase,
+            name: BOSS_VARIANTS[g.boss.variant].name,
+          }
         : null;
       const sector = Math.floor((g.wave - 1) / WAVES_PER_SECTOR) + 1;
       const key = `${g.score}|${g.lives}|${g.wave}|${g.level}|${bossHud?.hp ?? -1}|${powers.map((p) => p.k + Math.round(p.pct * 20)).join(",")}`;
@@ -880,6 +956,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      ro?.disconnect();
       window.removeEventListener("resize", fit);
       window.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("touchmove", onTouch);
@@ -956,7 +1033,9 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
           <div>SECTOR {hud.sector} · WAVE {hud.wave}</div>
           <div aria-label={`${hud.lives} lives remaining`} style={{ color: SHIP_COLOR }}>
             {"▲".repeat(Math.max(0, hud.lives))}
-            <span className="opacity-25">{"▲".repeat(Math.max(0, 3 - hud.lives))}</span>
+            <span className="opacity-25">
+              {"▲".repeat(Math.max(0, START_LIVES - hud.lives))}
+            </span>
           </div>
         </div>
       </div>
@@ -965,7 +1044,7 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
       {hud.boss && (
         <div className="pointer-events-none absolute inset-x-0 top-16 mx-auto w-[min(560px,80vw)] px-4">
           <div className="mb-1 flex justify-between font-mono text-[10px] text-pink-300">
-            <span>MOTHERSHIP</span>
+            <span>{hud.boss.name}</span>
             <span>PHASE {hud.boss.phase}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
@@ -1017,8 +1096,10 @@ export default function SpaceGame({ onClose }: { onClose: () => void }) {
             <span><span style={{ color: POWER_META.spread.color }}>S</span> spread shot</span>
             <span><span style={{ color: POWER_META.shield.color }}>O</span> shield</span>
             <span><span style={{ color: POWER_META.bomb.color }}>B</span> smart bomb</span>
-            <span className="col-span-2">
-              <span style={{ color: SHIP_COLOR }}>^</span> weapon upgrade — MK.I → MK.IV
+            <span><span style={{ color: POWER_META.life.color }}>♥</span> extra life (rare)</span>
+            <span><span style={{ color: SHIP_COLOR }}>^</span> weapon upgrade</span>
+            <span className="col-span-2 pt-1 text-gray-600">
+              drops are scarce — MK.I → MK.IV is earned over a run
             </span>
           </div>
           <button
