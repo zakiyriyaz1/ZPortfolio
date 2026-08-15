@@ -1,49 +1,39 @@
 "use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
-const pageVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  enter: {
-    opacity: 1,
-    y: 0,
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-  },
-};
-
+/**
+ * Wraps each page. Deliberately renders content with NO entrance animation.
+ *
+ * Why: this previously used Framer Motion's <AnimatePresence mode="wait">,
+ * where every page mounted at opacity: 0 and only became visible once an
+ * animation ran to completion. That makes visibility depend on the animation
+ * succeeding -- and if the animation stalls for any reason (a stalled
+ * compositor, a throttled rAF loop, an AnimatePresence exit handshake that
+ * never fires), the page is left permanently invisible even though all of its
+ * content is present and correct in the DOM. That matches the reported bug
+ * exactly: content there but unseen, nothing in the console, a hard refresh
+ * working, and clicking around sometimes shaking it loose.
+ *
+ * Rather than guess at which specific stall was to blame, this removes the
+ * failure mode: content is visible by default and nothing has to run for it to
+ * show up.
+ *
+ * `key={pathname}` is kept so React still remounts page content on navigation.
+ * `my-auto` keeps the vertical centering fix.
+ *
+ * If an entrance animation is added back later, animate transform only (or
+ * start from opacity: 1) so that a stalled animation can never hide content.
+ */
 const PageTransition = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   return (
-    <AnimatePresence mode="wait">
-      {/* The `key={pathname}` is crucial. It tells Framer Motion to treat
-        pages with different URLs as distinct components, triggering the
-        enter and exit animations when the path changes.
-        
-        `mode="wait"` ensures that the outgoing page completes its exit
-        animation before the new page begins its enter animation.
-      */}
-      <motion.div
-        key={pathname}
-        variants={pageVariants}
-        initial="hidden"
-        animate="enter"
-        exit="exit"
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <div key={pathname} className="w-full my-auto">
+      {children}
+    </div>
   );
 };
 
 export default PageTransition;
-
