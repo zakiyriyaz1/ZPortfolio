@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <section className="min-h-full flex flex-col items-center justify-center text-center p-4 md:p-8">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >

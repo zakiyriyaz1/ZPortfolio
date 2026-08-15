@@ -173,7 +173,7 @@ export default function Home() {
         {/* Profile picture container */}
         <motion.div
           className="w-32 h-32 md:w-40 md:h-40 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mt-12 mb-6 md:mt-5 md:mb-10 overflow-hidden bg-dark/30 backdrop-blur-sm relative"
-          initial={{ opacity: 0, scale: 0.5 }}
+          initial={false}
           animate={{
             opacity: 1,
             scale: [1.1, 1.03, 1.1],
@@ -200,13 +200,9 @@ export default function Home() {
 
         <motion.h1 
           className="text-4xl sm:text-5xl md:text-7xl font-bold text-white"
-          initial={{ 
-            opacity: 0, 
-            y: 50,
-            filter: "blur(10px)"
-          }}
-          animate={{ 
-            opacity: 1, 
+          initial={false}
+          animate={{
+            opacity: 1,
             y: 0,
             filter: "blur(0px)"
           }}
@@ -221,13 +217,9 @@ export default function Home() {
 
         <motion.div 
           className="mt-4"
-          initial={{ 
-            opacity: 0, 
-            scale: 0.8,
-            filter: "blur(5px)"
-          }}
-          animate={{ 
-            opacity: 1, 
+          initial={false}
+          animate={{
+            opacity: 1,
             scale: 1,
             filter: "blur(0px)"
           }}
@@ -244,12 +236,9 @@ export default function Home() {
 
         <motion.p 
           className="mt-6 max-w-sm md:max-w-xl text-lg text-gray-300"
-          initial={{ 
-            opacity: 0, 
-            y: 30
-          }}
-          animate={{ 
-            opacity: 1, 
+          initial={false}
+          animate={{
+            opacity: 1,
             y: 0
           }}
           transition={{
@@ -264,7 +253,7 @@ export default function Home() {
         {/* Buttons with staggered animation */}
         <motion.div 
           className="mt-8 flex w-full max-w-xs sm:max-w-none sm:w-auto flex-col sm:flex-row items-center gap-4"
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4 }}
         >
