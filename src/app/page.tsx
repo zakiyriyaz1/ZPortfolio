@@ -173,9 +173,10 @@ export default function Home() {
         {/* Profile picture container */}
         <motion.div
           className="w-32 h-32 md:w-40 md:h-40 rounded-full border-2 border-accent shadow-lg shadow-accent/50 mt-12 mb-6 md:mt-5 md:mb-10 overflow-hidden bg-dark/30 backdrop-blur-sm relative"
-          initial={false}
+          // Entrances here animate TRANSFORM ONLY, never opacity -- a stalled
+          // animation must never be able to hide content. Same rule below.
+          initial={{ scale: 0.88 }}
           animate={{
-            opacity: 1,
             scale: [1.1, 1.03, 1.1],
           }}
           transition={{
@@ -200,12 +201,8 @@ export default function Home() {
 
         <motion.h1 
           className="text-4xl sm:text-5xl md:text-7xl font-bold text-white"
-          initial={false}
-          animate={{
-            opacity: 1,
-            y: 0,
-            filter: "blur(0px)"
-          }}
+          initial={{ y: 28 }}
+          animate={{ y: 0 }}
           transition={{
             duration: 0.8,
             ease: "easeOut",
@@ -217,12 +214,8 @@ export default function Home() {
 
         <motion.div 
           className="mt-4"
-          initial={false}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            filter: "blur(0px)"
-          }}
+          initial={{ scale: 0.92 }}
+          animate={{ scale: 1 }}
           transition={{
             duration: 0.6,
             ease: "easeOut",
@@ -236,11 +229,8 @@ export default function Home() {
 
         <motion.p 
           className="mt-6 max-w-sm md:max-w-xl text-lg text-gray-300"
-          initial={false}
-          animate={{
-            opacity: 1,
-            y: 0
-          }}
+          initial={{ y: 18 }}
+          animate={{ y: 0 }}
           transition={{
             duration: 0.6,
             ease: "easeOut",
@@ -263,16 +253,8 @@ export default function Home() {
               style={{
                 boxShadow: "0 0 8px #fff, inset 0 0 8px #fff",
               }}
-              initial={{ 
-                opacity: 0, 
-                y: 20,
-                scale: 0.9
-              }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                scale: 1
-              }}
+              initial={{ y: 18, scale: 0.94 }}
+              animate={{ y: 0, scale: 1 }}
               transition={{
                 duration: 0.5,
                 ease: "easeOut",
@@ -292,16 +274,8 @@ export default function Home() {
           <Link href="/contact" className="w-full sm:w-auto">
             <motion.button
               className="w-full sm:w-auto px-8 py-3.5 font-bold rounded-md bg-accent text-dark hover:bg-accent/80 transition-colors duration-300"
-              initial={{ 
-                opacity: 0, 
-                y: 20,
-                scale: 0.9
-              }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                scale: 1
-              }}
+              initial={{ y: 18, scale: 0.94 }}
+              animate={{ y: 0, scale: 1 }}
               transition={{
                 duration: 0.5,
                 ease: "easeOut",

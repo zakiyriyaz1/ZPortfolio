@@ -56,14 +56,13 @@ const MobileSocials = () => {
     <motion.div
       className="grid md:hidden grid-cols-3 gap-y-6 gap-x-4 my-8"
       initial={false}
-      animate={{ opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.5 }}
     >
       {mobileSocialLinks.map((link, index) => (
         <motion.div
           key={link.id}
-          initial={false}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ y: 16 }}
+          animate={{ y: 0 }}
           transition={{ delay: 0.3 + index * 0.05 }}
           whileHover={{ scale: 1.1, y: -2, transition: { duration: 0.2 } }}
           whileTap={{ scale: 0.95 }}
@@ -178,8 +177,8 @@ export default function ContactPage() {
             <MobileSocials />
 
             <motion.div
-              initial={false}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ x: -18 }}
+              animate={{ x: 0 }}
               transition={{ duration: 0.5 }}
             >
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -232,7 +231,6 @@ export default function ContactPage() {
           <motion.div
             className="relative w-full h-[600px] overflow-hidden justify-center items-center hidden md:flex"
             initial={false}
-            animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
              <div className="absolute inset-0 bg-gradient-radial from-accent/5 via-transparent to-transparent rounded-full blur-3xl" />
@@ -313,9 +311,9 @@ export default function ContactPage() {
                     className="absolute group cursor-pointer" 
                     style={{ left: position.x - 40, top: position.y - 40, zIndex: 20 }} 
                     onClick={link.isDownload ? downloadResume : undefined}
-                    initial={false}
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.8 + index * 0.15 }}
+                    initial={{ scale: 0.4, rotate: -90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 150, damping: 12, delay: 0.5 + index * 0.1 }}
                     whileHover={{ scale: 1.15, rotate: 5, zIndex: 50, transition: { duration: 0.2 } }} 
                     whileTap={{ scale: 0.95 }}
                   >
