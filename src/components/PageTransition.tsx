@@ -33,6 +33,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => {
       */}
       <motion.div
         key={pathname}
+        className="w-full my-auto"
         variants={pageVariants}
         initial="hidden"
         animate="enter"

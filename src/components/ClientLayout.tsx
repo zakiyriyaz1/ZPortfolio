@@ -19,7 +19,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <Header />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto flex flex-col">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>
